@@ -40,7 +40,7 @@ security_logger = logging.getLogger("lexshield.security")
 current_dir = Path(__file__).resolve().parent
 sys.path.insert(0, str(current_dir))
 
-from analyzer import analyze_contract_text
+from analyzer import analyze_contract_text, calculate_late_fee
 from sample_contracts import SAMPLE_CONTRACTS
 
 app = FastAPI(
@@ -157,6 +157,14 @@ class AnalyzeRequest(BaseModel):
     language: Optional[str] = Field("en", max_length=10, description="Output language code")
 
 
+class LatePaymentRequest(BaseModel):
+    amount: float = Field(..., ge=0.0, description="Original invoice amount")
+    days_overdue: int = Field(..., ge=0, le=3650, description="Number of days payment is delayed past due date")
+    monthly_rate_percent: float = Field(1.5, ge=0.0, le=100.0, description="Monthly late penalty interest rate")
+    flat_fee: float = Field(0.0, ge=0.0, description="Optional flat late fee / administrative charge")
+    currency: str = Field("$", max_length=5, description="Currency symbol ($ or ₹ or € or £)")
+
+
 # OWASP A04: Safe Document Ingestion with Decompression Bomb Protections
 def extract_text_from_file(filename: str, content: bytes) -> str:
     """Extracts raw text from uploaded PDF, DOCX, or TXT safely in memory with resource limits."""
@@ -262,6 +270,23 @@ async def analyze_text(request_data: AnalyzeRequest, req: Request):
         "length_characters": len(request_data.text),
         "results": analysis
     }
+
+
+@app.post("/api/late-payment-calculator")
+async def calculate_overdue_penalty(request_data: LatePaymentRequest, req: Request):
+    """
+    Calculates late payment penalty when a client misses the payment due date.
+    Returns calculated extra fee, total due, and copyable legal clause & notice email.
+    """
+    verify_access_control(req)
+    result = calculate_late_fee(
+        amount=request_data.amount,
+        days_overdue=request_data.days_overdue,
+        monthly_rate_percent=request_data.monthly_rate_percent,
+        flat_fee=request_data.flat_fee,
+        currency=request_data.currency
+    )
+    return result
 
 
 @app.post("/api/upload")

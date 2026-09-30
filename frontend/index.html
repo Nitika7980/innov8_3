@@ -34,6 +34,7 @@
         </div>
 
         <span class="pill-badge pill-sandboxed"><span class="dot"></span> <span data-i18n="badge_sandboxed">Sandboxed & Zero-Storage</span></span>
+        <button class="pill-badge pill-clickable" onclick="scrollToLateTool()" title="Late Payment & Overdue Penalty Calculator">⏰ <span>Late Fee Protection</span></button>
         <span class="pill-badge pill-speed" data-i18n="badge_speed">⚡ Analysis &lt; 2s</span>
         <button id="toggleThemeBtn" class="btn-theme-toggle" title="Toggle Theme">🌓</button>
       </div>
@@ -123,6 +124,127 @@
           <button id="analyzeBtn" class="btn-primary" onclick="performAnalysis()">
             <span id="analyzeBtnIcon">🔍</span> <span id="analyzeBtnText" data-i18n="btn_analyze">Analyze Contract &amp; Generate Solutions</span>
           </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Late Payment Penalty & Extra Fee Protection Tool -->
+    <section class="late-fee-section" id="latePaymentToolSection">
+      <div class="card card-late-fee">
+        <div class="late-fee-header">
+          <div class="late-fee-title-wrap">
+            <span class="late-fee-icon">⏰</span>
+            <div>
+              <div class="late-tag">PROTECTION AGAINST PAYMENT DELAYS</div>
+              <h2 class="late-fee-title" data-i18n="late_tool_title">Late Payment &amp; Overdue Penalty Protection</h2>
+              <p class="late-fee-subtext" data-i18n="late_tool_sub">
+                Don't let clients delay payments for free! If a client misses the agreed payment date, enforce standard late payment penalties and charge extra fees for each day of delay.
+              </p>
+            </div>
+          </div>
+          <button class="btn-toggle-tool" id="btnToggleLateTool" onclick="toggleLateTool()" title="Toggle Tool Display">
+            <span id="lateToggleIcon">▲</span>
+          </button>
+        </div>
+
+        <div id="lateToolBody" class="late-tool-body">
+          <div class="late-tool-grid">
+            <!-- Left Side: Interactive Input Controls -->
+            <div class="late-inputs-panel">
+              <div class="input-row-dual">
+                <div class="form-group">
+                  <label class="form-label" data-i18n="late_label_amount">Invoice Amount</label>
+                  <div class="currency-input-wrap">
+                    <select id="lateCurrency" class="currency-select" onchange="runLateFeeCalculation()">
+                      <option value="$">$ USD</option>
+                      <option value="₹">₹ INR</option>
+                      <option value="€">€ EUR</option>
+                      <option value="£">£ GBP</option>
+                      <option value="C$">C$ CAD</option>
+                    </select>
+                    <input type="number" id="lateAmount" class="form-input" value="2500" min="1" step="any" oninput="runLateFeeCalculation()" />
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" data-i18n="late_label_rate">Monthly Late Penalty Rate</label>
+                  <select id="lateRate" class="form-input" onchange="runLateFeeCalculation()">
+                    <option value="1.5">1.5% per month (18% p.a. - Commercial Standard)</option>
+                    <option value="2.0">2.0% per month (24% p.a. - Strict Contractor)</option>
+                    <option value="1.0">1.0% per month (12% p.a. - Mild Terms)</option>
+                    <option value="2.5">2.5% per month (30% p.a. - High Risk Client)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="input-row-dual">
+                <div class="form-group">
+                  <label class="form-label" data-i18n="late_label_due_date">Original Due Date</label>
+                  <input type="date" id="lateDueDate" class="form-input" onchange="handleDueDateChange()" />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" data-i18n="late_label_days">Days Delayed / Overdue</label>
+                  <input type="number" id="lateDays" class="form-input" value="15" min="1" max="365" oninput="runLateFeeCalculation()" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" data-i18n="late_label_flat">Fixed Administrative Surcharge (Optional)</label>
+                <input type="number" id="lateFlatFee" class="form-input" value="0" min="0" step="any" placeholder="e.g. 50" oninput="runLateFeeCalculation()" />
+              </div>
+            </div>
+
+            <!-- Right Side: Live Results KPI Box -->
+            <div class="late-results-panel">
+              <div class="late-kpi-grid">
+                <div class="kpi-card kpi-base">
+                  <div class="kpi-label" data-i18n="late_kpi_original">Original Invoice</div>
+                  <div class="kpi-val" id="kpiOriginal">$2,500.00</div>
+                </div>
+                <div class="kpi-card kpi-penalty">
+                  <div class="kpi-label" data-i18n="late_kpi_extra">Extra Late Fee Owed</div>
+                  <div class="kpi-val kpi-danger" id="kpiExtra">+$18.75</div>
+                </div>
+                <div class="kpi-card kpi-total">
+                  <div class="kpi-label" data-i18n="late_kpi_total">Total Client Must Pay</div>
+                  <div class="kpi-val kpi-success" id="kpiTotal">$2,518.75</div>
+                </div>
+              </div>
+
+              <div class="late-status-pill" id="lateStatusPill">
+                ⚡ <strong>15 Days Past Due Date:</strong> Work may be temporarily suspended until the invoice and accrued late fee are settled.
+              </div>
+
+              <!-- Action buttons -->
+              <div class="late-actions-row">
+                <button class="btn-primary btn-sm" onclick="copyLatePenaltyClause()">
+                  <span data-i18n="btn_copy_late_clause">📋 Copy Late Payment Clause for Contract</span>
+                </button>
+                <button class="btn-secondary btn-sm" onclick="copyLateNoticeEmail()">
+                  <span data-i18n="btn_copy_late_notice">📧 Copy Overdue Notice &amp; Extra Fee Email</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preview Drawer: Tabs for Contract Clause vs Overdue Email -->
+          <div class="late-preview-box">
+            <div class="late-preview-tabs">
+              <button class="late-tab-btn active" id="tabLateClauseBtn" onclick="switchLatePreviewTab('clause')">
+                📄 Ironclad Contract Clause (Add Before Signing)
+              </button>
+              <button class="late-tab-btn" id="tabLateEmailBtn" onclick="switchLatePreviewTab('email')">
+                ✉️ Overdue Notice &amp; Extra Fee Demand Email
+              </button>
+            </div>
+            <div class="late-preview-content" id="lateClausePreviewContainer">
+              <pre class="late-code-preview" id="lateClausePreviewText"></pre>
+            </div>
+            <div class="late-preview-content hidden" id="lateEmailPreviewContainer">
+              <pre class="late-code-preview" id="lateEmailPreviewText"></pre>
+            </div>
+          </div>
         </div>
       </div>
     </section>

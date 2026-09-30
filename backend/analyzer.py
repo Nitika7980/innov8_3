@@ -122,6 +122,41 @@ TRAP_RULES = [
         )
     },
     {
+        "id": "missing_late_payment_penalty",
+        "category": "Payment Terms",
+        "title": "Unpenalized Payment Delays / Missing Overdue Late Fee",
+        "severity": "HIGH",
+        "weight": 15,
+        "patterns": [
+            r"no\s+interest\s+(shall|will)\s+accrue",
+            r"no\s+(late\s+fee|penalty)\s+for\s+(late|delayed)\s+payment",
+            r"without\s+penalty\s+for\s+delay",
+            r"payment\s+delays?\s+shall\s+not\s+(incur|accrue|constitute)",
+            r"grace\s+period\s+of\s+\d+\s+days\s+without\s+(interest|penalty|fee)",
+            r"client\s+may\s+delay\s+payment[^\n\r]{0,80}?without\s+penalty",
+            r"failure\s+to\s+pay\s+on\s+time\s+shall\s+not\s+be\s+deemed\s+a\s+breach",
+            r"shall\s+not\s+be\s+subject\s+to\s+late\s+charges"
+        ],
+        "plain_translation": (
+            "If the client misses the agreed payment date or delays payment, they suffer zero financial consequence or extra charge. "
+            "Contracts must mandate an extra late fee payment if the client delays or misses the due date."
+        ),
+        "why_risky": (
+            "Without a mandatory late fee penalty, clients have zero incentive to pay you on time. "
+            "Freelancers routinely get pushed to the bottom of the client's payment queue unless there is an extra fee for delayed payments."
+        ),
+        "solution_clause": (
+            "\"Late Payment Penalty and Overdue Invoices: Payment of all invoices shall be strictly due within [Net-14 / Net-30] "
+            "calendar days of issuance. If Client fails to pay on or before the agreed due date, Client shall incur and pay an additional "
+            "late payment fee / interest at the rate of 1.5% per month (or the maximum allowable rate by law), calculated daily on the "
+            "outstanding balance from the due date until paid in full. Freelancer reserves the right to immediately pause all active services "
+            "and withhold project deliverables until all overdue balances and extra late payment penalties are settled in full.\""
+        ),
+        "negotiation_tip": (
+            "Tell the client: 'Just like utility bills, software subscriptions, and commercial agency agreements, my contract includes a standard 1.5% monthly late payment fee. If a payment date is missed, this ensures our project schedule and cash flow remain balanced.'"
+        )
+    },
+    {
         "id": "unilateral_termination",
         "category": "Termination Rights",
         "title": "Unilateral Termination Without Kill Fee",
@@ -287,7 +322,7 @@ def analyze_contract_text(contract_text: str) -> Dict[str, Any]:
         "Intellectual Property": {"penalty": 0, "max": 25, "detected": 0},
         "Scope & Revisions": {"penalty": 0, "max": 20, "detected": 0},
         "Non-Compete & Exclusivity": {"penalty": 0, "max": 20, "detected": 0},
-        "Payment Terms": {"penalty": 0, "max": 25, "detected": 0},
+        "Payment Terms": {"penalty": 0, "max": 35, "detected": 0},
         "Termination Rights": {"penalty": 0, "max": 15, "detected": 0},
         "Liability & Indemnification": {"penalty": 0, "max": 20, "detected": 0},
         "Portfolio & Attribution": {"penalty": 0, "max": 10, "detected": 0},
@@ -332,6 +367,45 @@ def analyze_contract_text(contract_text: str) -> Dict[str, Any]:
                 "solution_clause": rule["solution_clause"],
                 "negotiation_tip": rule["negotiation_tip"]
             })
+
+    # Check for Missing Late Payment Penalty Protection (Client can delay payment with no penalty)
+    has_payment_terms = bool(re.search(r'\b(compensation|payment|fee|fees|invoice|invoices|net-\d+|disbursed|payable)\b', contract_text, re.IGNORECASE))
+    has_late_payment_clause = bool(re.search(r'\b(late\s+payment|overdue|interest\s+at\s+\d|late\s+fee|penalty\s+for\s+delay|accrue\s+interest|interest\s+rate\s+of)\b', contract_text, re.IGNORECASE))
+    already_flagged_late_fee = any(r["rule_id"] == "missing_late_payment_penalty" for r in detected_risks)
+
+    if has_payment_terms and not has_late_payment_clause and not already_flagged_late_fee:
+        pay_match = re.search(r'([^\n\r]{0,80}\b(compensation|payment|fee|invoice|net-\d+)\b[^\n\r]{0,80})', contract_text, re.IGNORECASE)
+        snippet = pay_match.group(0).strip() if pay_match else "Contract contains payment terms without late payment penalty protection."
+        weight = 15
+        incurred_penalty += weight
+        category_scores["Payment Terms"]["penalty"] += weight
+        category_scores["Payment Terms"]["detected"] += 1
+        detected_risks.append({
+            "rule_id": "missing_late_payment_penalty",
+            "category": "Payment Terms",
+            "title": "Missing Late Payment Penalty / Overdue Interest Clause",
+            "severity": "HIGH",
+            "weight": weight,
+            "matched_snippet": snippet,
+            "plain_translation": (
+                "The contract has payment terms but completely omits an overdue payment penalty. "
+                "If the client misses the agreed payment date or delays payment, they owe you no extra late fee and face no penalty for withholding your funds."
+            ),
+            "why_risky": (
+                "Without a mandatory late fee penalty, clients have zero incentive to pay you on time. "
+                "Freelancers routinely get pushed to the bottom of the client's payment queue unless there is a financial penalty for delayed payments."
+            ),
+            "solution_clause": (
+                "\"Late Payment Penalty and Overdue Invoices: Payment of all invoices shall be strictly due within [Net-14 / Net-30] "
+                "calendar days of issuance. If Client fails to make payment on or before the agreed due date, Client shall incur and pay an additional "
+                "late payment fee / interest at the rate of 1.5% per month (or the maximum allowable rate by law), calculated daily on the "
+                "outstanding balance from the due date until paid in full. Freelancer reserves the right to immediately pause all active services "
+                "and withhold deliverable licenses until all overdue amounts and extra late payment penalties are settled in full.\""
+            ),
+            "negotiation_tip": (
+                "Tell the client: 'My invoicing policy includes a standard 1.5% monthly late payment fee on overdue balances. This ensures predictable delivery milestones and is standard practice across independent contractor agreements.'"
+            )
+        })
 
     # Base score is 100 minus accumulated penalties (capped at 0 min and 100 max)
     raw_score = max(5, 100 - incurred_penalty)
@@ -425,3 +499,66 @@ def generate_counter_offer_email(risks: List[Dict[str, Any]]) -> Dict[str, str]:
         "subject": "Proposed Revisions: Independent Contractor Agreement - [Your Name / Project Name]",
         "body": "\n".join(body_lines)
     }
+
+
+def calculate_late_fee(
+    amount: float,
+    days_overdue: int,
+    monthly_rate_percent: float = 1.5,
+    flat_fee: float = 0.0,
+    currency: str = "$"
+) -> Dict[str, Any]:
+    """
+    Calculates late payment penalty when a client misses the payment due date.
+    Returns calculated extra fee, total due, and copyable legal clause & notice email.
+    """
+    amount = max(0.0, float(amount))
+    days_overdue = max(0, int(days_overdue))
+    monthly_rate_percent = max(0.0, float(monthly_rate_percent))
+    flat_fee = max(0.0, float(flat_fee))
+    
+    # Standard daily interest calculation: (monthly rate / 30) / 100
+    daily_rate = (monthly_rate_percent / 100.0) / 30.0
+    interest_fee = amount * daily_rate * days_overdue
+    extra_payment = round(interest_fee + flat_fee, 2)
+    total_due = round(amount + extra_payment, 2)
+    
+    clause_text = (
+        f"\"Late Payment Penalty and Overdue Invoices: Payment of all invoices shall be strictly due within [Net-14 / Net-30] "
+        f"calendar days of issuance. If Client fails to make payment on or before the agreed due date, Client shall incur and pay "
+        f"an additional late payment penalty interest of {monthly_rate_percent}% per month (or the maximum allowable by statutory law) "
+        f"calculated daily on the outstanding balance from the due date until paid in full. Freelancer reserves the right to immediately "
+        f"suspend all active services and withhold project deliverables until all overdue balances and extra late fees are settled in full.\""
+    )
+    
+    notice_email = {
+        "subject": f"URGENT: Overdue Invoice Notice — Late Payment Fee Applied ({currency}{extra_payment:,.2f})",
+        "body": (
+            f"Dear [Client Name],\n\n"
+            f"This is a formal reminder regarding your outstanding invoice in the amount of {currency}{amount:,.2f}, "
+            f"which was due on [Due Date] and is currently {days_overdue} days overdue.\n\n"
+            f"As stated in our freelance contract terms, overdue invoices accrue a late payment penalty at the rate of "
+            f"{monthly_rate_percent}% per month ({currency}{interest_fee:,.2f}"
+            + (f" plus a {currency}{flat_fee:,.2f} administrative late fee" if flat_fee > 0 else "")
+            + f").\n\n"
+            f"The revised total balance now due is {currency}{total_due:,.2f} "
+            f"(Original: {currency}{amount:,.2f} + Extra Late Fee: {currency}{extra_payment:,.2f}).\n\n"
+            f"Please remit payment immediately via [Payment Method/Link] to avoid suspension of ongoing work "
+            f"and delivery milestones. Kindly reply with payment confirmation once processed.\n\n"
+            f"Thank you for your prompt cooperation.\n\n"
+            f"Best regards,\n[Your Name]\nFreelance Contractor"
+        )
+    }
+    
+    return {
+        "original_amount": amount,
+        "days_overdue": days_overdue,
+        "monthly_rate_percent": monthly_rate_percent,
+        "flat_fee": flat_fee,
+        "currency": currency,
+        "extra_payment": extra_payment,
+        "total_due": total_due,
+        "clause_text": clause_text,
+        "notice_email": notice_email
+    }
+

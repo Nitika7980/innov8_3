@@ -100,6 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupTheme();
   setupLanguage();
   setupDropzone();
+  initLatePaymentTool();
   
   // Auto-load first sample contract for instant interactive preview
   loadSample("predatory_dev");
@@ -522,9 +523,16 @@ function renderClauseCards(risks) {
             <div class="negotiation-tip">
               ${t("label_script", "💬 Negotiation Script:")} "${escapeHtml(risk.negotiation_tip)}"
             </div>
-            <button class="btn-copy-solution" onclick="copySolution(${idx})">
-              ${t("btn_copy_solution", "📋 Copy Solution Clause")}
-            </button>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              ${(risk.category === "Payment Terms" || risk.rule_id === "missing_late_payment_penalty" || risk.rule_id === "predatory_payment_terms") ? `
+                <button class="btn-copy-solution" style="background: var(--warning-bg); border-color: var(--warning); color: var(--warning);" onclick="openLateFeeCalculatorFromRisk('${escapeHtml(risk.matched_snippet)}')">
+                  ⏰ Calculate Overdue Fee
+                </button>
+              ` : ''}
+              <button class="btn-copy-solution" onclick="copySolution(${idx})">
+                ${t("btn_copy_solution", "📋 Copy Solution Clause")}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -679,3 +687,188 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
+/* ==========================================================================
+   Late Payment & Overdue Penalty Tool Logic
+   ========================================================================== */
+
+function initLatePaymentTool() {
+  const dueDateInput = document.getElementById("lateDueDate");
+  if (dueDateInput && !dueDateInput.value) {
+    const d = new Date();
+    d.setDate(d.getDate() - 15);
+    dueDateInput.value = d.toISOString().split("T")[0];
+  }
+  runLateFeeCalculation();
+}
+
+function toggleLateTool() {
+  const body = document.getElementById("lateToolBody");
+  const icon = document.getElementById("lateToggleIcon");
+  if (!body) return;
+  if (body.style.display === "none") {
+    body.style.display = "block";
+    if (icon) icon.textContent = "▲";
+  } else {
+    body.style.display = "none";
+    if (icon) icon.textContent = "▼";
+  }
+}
+
+function scrollToLateTool() {
+  const sec = document.getElementById("latePaymentToolSection");
+  if (sec) {
+    const body = document.getElementById("lateToolBody");
+    const icon = document.getElementById("lateToggleIcon");
+    if (body) {
+      body.style.display = "block";
+      if (icon) icon.textContent = "▲";
+    }
+    sec.scrollIntoView({ behavior: "smooth", block: "center" });
+    sec.classList.add("highlight-flash");
+    setTimeout(() => sec.classList.remove("highlight-flash"), 1500);
+  }
+}
+
+function handleDueDateChange() {
+  const dueDateInput = document.getElementById("lateDueDate");
+  const daysInput = document.getElementById("lateDays");
+  if (!dueDateInput || !daysInput || !dueDateInput.value) return;
+  
+  const due = new Date(dueDateInput.value);
+  const now = new Date();
+  const diffTime = now - due;
+  const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+  daysInput.value = diffDays;
+  runLateFeeCalculation();
+}
+
+function runLateFeeCalculation() {
+  const currency = document.getElementById("lateCurrency")?.value || "$";
+  const amount = Math.max(0, parseFloat(document.getElementById("lateAmount")?.value || 0));
+  const rateMonthly = Math.max(0, parseFloat(document.getElementById("lateRate")?.value || 1.5));
+  const daysOverdue = Math.max(0, parseInt(document.getElementById("lateDays")?.value || 0));
+  const flatFee = Math.max(0, parseFloat(document.getElementById("lateFlatFee")?.value || 0));
+
+  // Daily interest calculation: (monthly / 30) / 100
+  const dailyRate = (rateMonthly / 100) / 30;
+  const interest = amount * dailyRate * daysOverdue;
+  const extraPayment = interest + flatFee;
+  const totalDue = amount + extraPayment;
+
+  // Format currency
+  const fmt = (num) => currency + num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const kpiOrig = document.getElementById("kpiOriginal");
+  const kpiExtra = document.getElementById("kpiExtra");
+  const kpiTot = document.getElementById("kpiTotal");
+  const statusPill = document.getElementById("lateStatusPill");
+
+  if (kpiOrig) kpiOrig.textContent = fmt(amount);
+  if (kpiExtra) kpiExtra.textContent = "+" + fmt(extraPayment);
+  if (kpiTot) kpiTot.textContent = fmt(totalDue);
+
+  if (statusPill) {
+    if (daysOverdue > 0) {
+      statusPill.innerHTML = `⚠️ <strong>${daysOverdue} Days Overdue:</strong> Client missed payment date. Total extra fee owed is <strong>+${fmt(extraPayment)}</strong>. You have the right to suspend all active work until paid.`;
+      statusPill.style.background = "var(--warning-bg)";
+      statusPill.style.borderColor = "var(--warning-border)";
+      statusPill.style.color = "var(--warning)";
+    } else {
+      statusPill.innerHTML = `✅ <strong>Current on Schedule:</strong> No overdue delay detected yet. If payment date is missed, late interest (${rateMonthly}%/mo) will automatically apply.`;
+      statusPill.style.background = "var(--success-bg)";
+      statusPill.style.borderColor = "var(--success-border)";
+      statusPill.style.color = "var(--success)";
+    }
+  }
+
+  // Update Contract Clause Preview
+  const clausePreview = document.getElementById("lateClausePreviewText");
+  if (clausePreview) {
+    clausePreview.textContent = 
+`"Late Payment Penalty and Overdue Invoices: Payment of all invoices shall be strictly due within [Net-14 / Net-30] calendar days of issuance. If Client fails to make payment on or before the agreed due date, Client shall incur and pay an additional late payment penalty interest of ${rateMonthly}% per month (or the maximum allowable rate by statutory law), calculated daily on the outstanding balance from the due date until paid in full. Freelancer reserves the right to immediately pause all active services and withhold deliverable licenses until all overdue amounts and extra late payment penalties are settled in full."`;
+  }
+
+  // Update Overdue Notice Email Preview
+  const emailPreview = document.getElementById("lateEmailPreviewText");
+  if (emailPreview) {
+    emailPreview.textContent = 
+`Subject: URGENT: Overdue Invoice Notice — Late Payment Fee Applied (${fmt(extraPayment)})
+
+Dear [Client Name / Hiring Manager],
+
+This is a formal payment notice regarding your outstanding invoice in the amount of ${fmt(amount)}, which was due on [Due Date] and is currently ${daysOverdue} days past due.
+
+In accordance with standard independent contractor terms and our agreed payment policy, overdue balances accrue an additional late payment interest fee of ${rateMonthly}% per month (${fmt(interest)}${flatFee > 0 ? ` plus a ${fmt(flatFee)} administrative surcharge` : ''}).
+
+The revised total balance now outstanding is ${fmt(totalDue)}:
+- Original Invoiced Amount: ${fmt(amount)}
+- Accrued Extra Late Fee (${daysOverdue} days @ ${rateMonthly}%/mo): +${fmt(extraPayment)}
+--------------------------------------------------
+TOTAL AMOUNT DUE IMMEDIATELY: ${fmt(totalDue)}
+
+To ensure project delivery schedules are not interrupted, please remit the total payment of ${fmt(totalDue)} immediately via [Payment Link / Bank Details].
+
+Kindly reply with the transaction confirmation once payment has been submitted.
+
+Thank you for your prompt cooperation.
+
+Sincerely,
+[Your Name]
+Freelance Contractor | [Your Contact Details]`;
+  }
+}
+
+function switchLatePreviewTab(tab) {
+  const clauseBtn = document.getElementById("tabLateClauseBtn");
+  const emailBtn = document.getElementById("tabLateEmailBtn");
+  const clauseBox = document.getElementById("lateClausePreviewContainer");
+  const emailBox = document.getElementById("lateEmailPreviewContainer");
+
+  if (tab === "clause") {
+    clauseBtn?.classList.add("active");
+    emailBtn?.classList.remove("active");
+    clauseBox?.classList.remove("hidden");
+    emailBox?.classList.add("hidden");
+  } else {
+    emailBtn?.classList.add("active");
+    clauseBtn?.classList.remove("active");
+    emailBox?.classList.remove("hidden");
+    clauseBox?.classList.add("hidden");
+  }
+}
+
+function copyLatePenaltyClause() {
+  const preview = document.getElementById("lateClausePreviewText");
+  if (preview) {
+    navigator.clipboard.writeText(preview.textContent.trim()).then(() => {
+      showToast(t("toast_copied_late_clause", "Late Payment Contract Clause copied to clipboard!"));
+    });
+  }
+}
+
+function copyLateNoticeEmail() {
+  const preview = document.getElementById("lateEmailPreviewText");
+  if (preview) {
+    navigator.clipboard.writeText(preview.textContent.trim()).then(() => {
+      showToast(t("toast_copied_late_notice", "Overdue Payment Notice Email copied to clipboard!"));
+    });
+  }
+}
+
+function openLateFeeCalculatorFromRisk(snippet) {
+  scrollToLateTool();
+  let match = (snippet || "").match(/\$([\d,]+)/);
+  if (!match && currentContractText) {
+    match = currentContractText.match(/\$([\d,]+)/);
+  }
+  if (match) {
+    const rawVal = parseFloat(match[1].replace(/,/g, ""));
+    const amountInput = document.getElementById("lateAmount");
+    if (amountInput && !isNaN(rawVal)) {
+      amountInput.value = rawVal;
+      runLateFeeCalculation();
+    }
+  }
+}
+
