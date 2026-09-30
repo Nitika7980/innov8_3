@@ -1,5 +1,5 @@
 # PLANNING.md — Project Roadmap & Technical Architecture
-**Project:** AI-07 Freelancer Legal Contract Analyzer & Risky Clause Scorer  
+**Project:** Freelancer Legal Contract Analyzer & Risky Clause Scorer  
 **Level:** Level 2 — Intermediate  
 **Target Completion:** 32 Hours  
 

@@ -1,5 +1,5 @@
 # PROGRESS.md — Implementation & Milestone Tracking
-**Project:** AI-07 Freelancer Legal Contract Analyzer & Risky Clause Scorer  
+**Project:** Freelancer Legal Contract Analyzer & Risky Clause Scorer  
 **Status:** Complete & Production Ready  
 
 ---

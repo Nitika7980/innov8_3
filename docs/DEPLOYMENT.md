@@ -1,5 +1,5 @@
 # DEPLOYMENT.md — Deployment & Execution Guide
-**Project:** AI-07 Freelancer Legal Contract Analyzer & Risky Clause Scorer  
+**Project:** Freelancer Legal Contract Analyzer & Risky Clause Scorer  
 
 ---
 

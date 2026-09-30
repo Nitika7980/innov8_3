@@ -1,6 +1,5 @@
 # LexShield AI — Freelancer Legal Contract Analyzer & Risky Clause Scorer
 
-> **AI-07 • Intermediate (Level 2 Challenge)**  
 > *Protecting student freelancers, creators, and gig workers from predatory contracts with instant risk scoring, plain-English translations, and attorney-grade counter-offer clauses.*
 
 ---

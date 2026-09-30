@@ -25,7 +25,7 @@ def main():
     print(" ⚖️  LEXSHIELD AI — Freelancer Legal Contract Analyzer & Clause Scorer")
     print("=" * 70)
     print(f" Starting server at: {url}")
-    print(" Level 2 Intermediate Solution: Contract OCR, Risk Scoring & Solutions")
+    print(" Features: Contract OCR, Risk Scoring, Multilingual & Counter-Offer Solutions")
     print(" Press Ctrl+C to stop the server.")
     print("=" * 70)
 

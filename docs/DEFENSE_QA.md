@@ -1,5 +1,5 @@
 # DEFENSE_QA.md — Hackathon Jury Defense & Architectural Q&A
-**Project:** AI-07 Freelancer Legal Contract Analyzer & Risky Clause Scorer  
+**Project:** Freelancer Legal Contract Analyzer & Risky Clause Scorer  
 **Level:** Level 2 — Intermediate  
 
 ---
