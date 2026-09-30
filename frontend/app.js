@@ -98,11 +98,23 @@ let selectedFile = null;
 // Initialize on DOM load
 document.addEventListener("DOMContentLoaded", () => {
   setupTheme();
+  setupLanguage();
   setupDropzone();
   
   // Auto-load first sample contract for instant interactive preview
   loadSample("predatory_dev");
 });
+
+function setupLanguage() {
+  const lang = typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "en";
+  const select = document.getElementById("languageSelect");
+  if (select) {
+    select.value = lang;
+  }
+  if (typeof applyTranslations === "function") {
+    applyTranslations();
+  }
+}
 
 // Setup Dark/Light Theme
 function setupTheme() {
@@ -344,13 +356,13 @@ function renderResults(analysis) {
 
   const titleEl = document.getElementById("verdictTitle");
   if (score >= 80) {
-    titleEl.textContent = "Safe & Creator-Friendly Agreement";
+    titleEl.textContent = t("preset_fair_title", "Safe & Creator-Friendly Agreement");
     titleEl.style.color = "#10b981";
   } else if (score >= 50) {
-    titleEl.textContent = "Moderate Risk — Proposed Amendments Needed";
+    titleEl.textContent = t("preset_agency_desc", "Moderate Risk — Proposed Amendments Needed");
     titleEl.style.color = "#f59e0b";
   } else {
-    titleEl.textContent = "High Risk Trap — Do NOT Sign As-Is!";
+    titleEl.textContent = t("preset_dev_title", "High Risk Trap — Do NOT Sign As-Is!");
     titleEl.style.color = "#ef4444";
   }
 
@@ -371,10 +383,10 @@ function renderResults(analysis) {
   // Category Health Bars
   renderCategoryBars(analysis.category_breakdown || []);
 
-  // Risky Causes & Counter-Offer Solutions (Core user requirement!)
+  // Risky Causes & Counter-Offer Solutions (Localized!)
   renderClauseCards(analysis.detected_risks || []);
 
-  // Counter-Offer Email
+  // Counter-Offer Email (Localized!)
   renderCounterOfferEmail(analysis.counter_offer_email);
 }
 
@@ -415,7 +427,7 @@ function renderCategoryBars(categories) {
   });
 }
 
-// Render Clause Cards with Solutions
+// Render Clause Cards with Solutions (Supports Multi-language localization)
 function renderClauseCards(risks) {
   const container = document.getElementById("clausesContainer");
   container.innerHTML = "";
@@ -437,16 +449,20 @@ function renderClauseCards(risks) {
     ? risks 
     : risks.filter(r => r.severity === selectedFilter);
 
-  filtered.forEach((risk, idx) => {
+  const lang = typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "en";
+
+  filtered.forEach((origRisk, idx) => {
+    const risk = typeof getLocalizedRisk === "function" ? getLocalizedRisk(origRisk, lang) : origRisk;
+
     let severityClass = "clause-card-critical";
-    let badgeHtml = `<span class="badge-crit">🚨 CRITICAL TRAP</span>`;
+    let badgeHtml = `<span class="badge-crit">${t("badge_crit", "🚨 CRITICAL TRAP")}</span>`;
     
     if (risk.severity === "HIGH") {
       severityClass = "clause-card-high";
-      badgeHtml = `<span class="badge-high">⚠️ HIGH RISK</span>`;
+      badgeHtml = `<span class="badge-high">${t("badge_high", "⚠️ HIGH RISK")}</span>`;
     } else if (risk.severity === "MEDIUM") {
       severityClass = "clause-card-medium";
-      badgeHtml = `<span class="badge-med">ℹ️ CAUTION</span>`;
+      badgeHtml = `<span class="badge-med">${t("badge_med", "ℹ️ CAUTION")}</span>`;
     }
 
     const card = document.createElement("div");
@@ -464,17 +480,17 @@ function renderClauseCards(risks) {
         <!-- 1. Original Clause with Redline Strikethrough -->
         <div class="subpanel-original">
           <div class="subpanel-label label-danger">
-            <span>❌ Predatory Clause in Contract (Strikethrough / Redline)</span>
-            <small>Dangerous Legalese</small>
+            <span>${t("label_original", "❌ Predatory Clause in Contract (Strikethrough / Redline)")}</span>
+            <small>${t("label_original_sub", "Dangerous Legalese")}</small>
           </div>
           <div class="snippet-original-text">"${escapeHtml(risk.matched_snippet)}"</div>
         </div>
 
-        <!-- 2. Plain English Translation & Legal Danger -->
+        <!-- 2. Plain Language Translation & Legal Danger -->
         <div class="explanation-row">
           <div class="expl-card">
             <div class="expl-header" style="color: var(--primary);">
-              <span>💡</span> Plain-English "Human" Translation
+              <span>💡</span> ${t("label_plain", "Plain-Language Translation")}
             </div>
             <div class="expl-content">
               ${escapeHtml(risk.plain_translation)}
@@ -483,7 +499,7 @@ function renderClauseCards(risks) {
 
           <div class="expl-card">
             <div class="expl-header" style="color: var(--danger);">
-              <span>⚠️</span> Why This Is a Trap For You
+              <span>⚠️</span> ${t("label_why", "Why This Is a Trap For You")}
             </div>
             <div class="expl-content">
               ${escapeHtml(risk.why_risky)}
@@ -491,11 +507,11 @@ function renderClauseCards(risks) {
           </div>
         </div>
 
-        <!-- 3. ACTIONABLE SOLUTION & COUNTER-OFFER CLAUSE (Direct User Requirement) -->
+        <!-- 3. ACTIONABLE SOLUTION & COUNTER-OFFER CLAUSE -->
         <div class="subpanel-solution">
           <div class="subpanel-label label-success">
-            <span>✨ Recommended Solution / Counter-Offer Clause</span>
-            <small>Fair &amp; Creator-Safe Substitute</small>
+            <span>${t("label_solution", "✨ Recommended Solution / Counter-Offer Clause")}</span>
+            <small>${t("label_solution_sub", "Fair & Creator-Safe Substitute")}</small>
           </div>
           
           <div class="solution-code-box" id="solutionText-${idx}">
@@ -504,10 +520,10 @@ function renderClauseCards(risks) {
 
           <div class="solution-footer">
             <div class="negotiation-tip">
-              💬 <strong>Negotiation Script:</strong> "${escapeHtml(risk.negotiation_tip)}"
+              ${t("label_script", "💬 Negotiation Script:")} "${escapeHtml(risk.negotiation_tip)}"
             </div>
             <button class="btn-copy-solution" onclick="copySolution(${idx})">
-              📋 Copy Solution Clause
+              ${t("btn_copy_solution", "📋 Copy Solution Clause")}
             </button>
           </div>
         </div>
@@ -524,7 +540,7 @@ function copySolution(idx) {
   if (el) {
     const textToCopy = el.innerText.trim();
     navigator.clipboard.writeText(textToCopy).then(() => {
-      showToast("Copied Counter-Offer Clause to clipboard!");
+      showToast(t("toast_copied_solution", "Copied Counter-Offer Clause to clipboard!"));
     });
   }
 }
@@ -550,18 +566,22 @@ function filterRisks(severity) {
   }
 }
 
-// Render Counter-Offer Email
+// Render Counter-Offer Email in Selected Language
 function renderCounterOfferEmail(emailData) {
-  if (!emailData) return;
-  document.getElementById("emailSubject").textContent = emailData.subject || "Proposed Revisions to Agreement";
-  document.getElementById("emailBodyText").textContent = emailData.body || "";
-  document.getElementById("modalEmailContent").value = emailData.body || "";
+  const lang = typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "en";
+  const localizedEmail = (typeof getLocalizedEmail === "function" && currentAnalysis)
+    ? getLocalizedEmail(currentAnalysis.detected_risks || [], lang)
+    : (emailData || {});
+
+  document.getElementById("emailSubject").textContent = localizedEmail.subject || "Proposed Revisions to Agreement";
+  document.getElementById("emailBodyText").textContent = localizedEmail.body || "";
+  document.getElementById("modalEmailContent").value = localizedEmail.body || "";
 }
 
 function copyEmailToClipboard() {
   const bodyText = document.getElementById("emailBodyText").innerText;
   navigator.clipboard.writeText(bodyText).then(() => {
-    showToast("Counter-Offer Email copied to clipboard!");
+    showToast(t("toast_copied_email", "Counter-Offer Email copied to clipboard!"));
   });
 }
 
@@ -589,17 +609,19 @@ function closeModalOnBackdrop(e) {
 function copyModalEmail() {
   const text = document.getElementById("modalEmailContent").value;
   navigator.clipboard.writeText(text).then(() => {
-    showToast("Email text copied to clipboard!");
+    showToast(t("toast_copied_email", "Email text copied to clipboard!"));
     closeEmailModal();
   });
 }
 
-// Export Redline Report
+// Export Redline Report with Selected Language
 async function exportRedlineReport() {
   if (!currentContractText) {
     alert("Please analyze a contract before exporting.");
     return;
   }
+
+  const lang = typeof getCurrentLanguage === "function" ? getCurrentLanguage() : "en";
 
   try {
     const res = await fetch("/api/redline-export", {
@@ -607,7 +629,8 @@ async function exportRedlineReport() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         text: currentContractText,
-        title: currentContractTitle
+        title: currentContractTitle,
+        language: lang
       })
     });
     
