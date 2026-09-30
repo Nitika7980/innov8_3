@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LexShield AI — Freelancer Legal Contract Analyzer & Risky Clause Scorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Navigation Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="logo-area">
+        <div class="logo-icon">⚖️</div>
+        <div>
+          <div class="brand-title">LexShield <span class="ai-badge">AI</span></div>
+          <div class="brand-subtitle">Freelancer Legal Contract Analyzer & Risky Clause Scorer</div>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="pill-badge pill-sandboxed"><span class="dot"></span> Sandboxed & Zero-Storage</span>
+        <span class="pill-badge pill-speed">⚡ Analysis &lt; 2s</span>
+        <button id="toggleThemeBtn" class="btn-theme-toggle" title="Toggle Theme">🌓</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="main-content">
+    <section class="hero-section">
+      <div class="hero-badge">AI-07 • Level 2 Intermediate Challenge</div>
+      <h1 class="hero-heading">Don't Sign Away Your Rights &amp; Code.</h1>
+      <p class="hero-subtext">
+        Student freelancers and new graduates frequently fall prey to indefinite payment delays, perpetual non-competes, and IP forfeiture. 
+        Upload your contract to get an instant <strong>Safety Score (0–100)</strong>, <strong>Plain-English explanations</strong>, and <strong>ready-to-send Counter-Offer Solutions</strong>.
+      </p>
+
+      <!-- Preloaded Demo Contracts -->
+      <div class="preset-contracts-card">
+        <div class="preset-label">⚡ QUICK TEST WITH REAL-WORLD SAMPLE CONTRACTS:</div>
+        <div class="preset-buttons-grid">
+          <button class="preset-btn btn-danger" onclick="loadSample('predatory_dev')">
+            <span class="preset-icon">🚨</span>
+            <div class="preset-info">
+              <strong>Predatory Tech Freelancer Agreement</strong>
+              <small>Net-90, Worldwide Non-Compete, IP Loss</small>
+            </div>
+          </button>
+
+          <button class="preset-btn btn-danger" onclick="loadSample('predatory_design')">
+            <span class="preset-icon">⚠️</span>
+            <div class="preset-info">
+              <strong>Exploitative Creator / Design Contract</strong>
+              <small>Endless Revisions, Gag Clause, Delayed Pay</small>
+            </div>
+          </button>
+
+          <button class="preset-btn btn-amber" onclick="loadSample('moderate_freelance')">
+            <span class="preset-icon">⚖️</span>
+            <div class="preset-info">
+              <strong>Standard Agency Agreement</strong>
+              <small>Moderate Risk, Net-45, 1-Year Non-Compete</small>
+            </div>
+          </button>
+
+          <button class="preset-btn btn-safe" onclick="loadSample('safe_fair')">
+            <span class="preset-icon">🛡️</span>
+            <div class="preset-info">
+              <strong>Fair &amp; Creator-Friendly Contract</strong>
+              <small>Deposit Upfront, IP on Pay, Mutual Terms</small>
+            </div>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Upload & Input Section -->
+    <section class="input-section">
+      <div class="card card-input">
+        <div class="card-header">
+          <div class="tabs">
+            <button class="tab-btn active" id="tabUploadBtn" onclick="switchInputTab('upload')">📁 Upload Document (PDF / DOCX / TXT / Image)</button>
+            <button class="tab-btn" id="tabTextBtn" onclick="switchInputTab('text')">✍️ Paste Contract Text</button>
+          </div>
+          <button class="btn-secondary btn-sm" onclick="clearInput()">Clear</button>
+        </div>
+
+        <!-- Tab 1: File Dropzone -->
+        <div id="dropzoneContainer" class="tab-content active">
+          <div class="dropzone" id="dropzone" onclick="triggerFileInput()">
+            <input type="file" id="fileInput" accept=".pdf,.docx,.txt,image/*" style="display: none;" onchange="handleFileSelected(event)" />
+            <div class="drop-icon">📄</div>
+            <div class="drop-main-text">Drag and drop your contract here, or <span class="browse-link">Browse files</span></div>
+            <div class="drop-sub-text">Supports PDF, DOCX, TXT, or Scanned Images (Up to 15MB)</div>
+            <div id="fileUploadStatus" class="file-status hidden"></div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Raw Text Editor -->
+        <div id="rawTextContainer" class="tab-content" style="display: none;">
+          <textarea id="contractTextInput" placeholder="Paste the clauses or full agreement text here (e.g. Scope of Work, Payment Terms, Non-Compete, Termination, IP Ownership)..." rows="12"></textarea>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="input-action-bar">
+          <div class="privacy-note">
+            🔒 <strong>Zero Data Retention:</strong> Contracts are evaluated in memory and discarded upon completion.
+          </div>
+          <button id="analyzeBtn" class="btn-primary" onclick="performAnalysis()">
+            <span id="analyzeBtnIcon">🔍</span> <span id="analyzeBtnText">Analyze Contract &amp; Generate Solutions</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading Skeleton Indicator -->
+    <div id="loadingIndicator" class="loading-container hidden">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Extracting clauses &amp; scoring contract safety...</div>
+      <div class="loading-subtext">Scanning for predatory payment terms, IP traps, and uncapped liabilities</div>
+    </div>
+
+    <!-- Results Dashboard Section -->
+    <section id="resultsSection" class="results-section hidden">
+      <!-- Top Overview Banner: Score, Grade & Metrics -->
+      <div class="card score-overview-card" id="scoreBanner">
+        <div class="score-grid">
+          <!-- Circular Animated Score Gauge -->
+          <div class="score-gauge-box">
+            <div class="circular-progress" id="scoreProgressCircle">
+              <div class="inner-circle">
+                <span id="scoreValue" class="score-number">--</span>
+                <span class="score-max">/ 100</span>
+              </div>
+            </div>
+            <div class="score-label">Contract Safety Score</div>
+          </div>
+
+          <!-- Grade & Key Verdict -->
+          <div class="score-verdict-box">
+            <div class="verdict-header">
+              <span class="verdict-tag" id="verdictBadge">PENDING</span>
+              <span class="contract-doc-title" id="contractDocTitle">Document Analysis</span>
+            </div>
+            <h2 class="verdict-title" id="verdictTitle">Evaluating terms...</h2>
+            <p class="verdict-summary" id="verdictSummary">Summary will appear here.</p>
+            
+            <!-- Quick Stat Counters -->
+            <div class="stats-row">
+              <div class="stat-item stat-critical">
+                <div class="stat-number" id="statCriticalCount">0</div>
+                <div class="stat-label">Critical Traps</div>
+              </div>
+              <div class="stat-item stat-high">
+                <div class="stat-number" id="statHighCount">0</div>
+                <div class="stat-label">High Risks</div>
+              </div>
+              <div class="stat-item stat-medium">
+                <div class="stat-number" id="statMediumCount">0</div>
+                <div class="stat-label">Warnings</div>
+              </div>
+              <div class="stat-item stat-solutions">
+                <div class="stat-number" id="statSolutionCount">0</div>
+                <div class="stat-label">Counter-Offer Solutions</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions Panel -->
+          <div class="score-actions-box">
+            <button class="btn-action-primary" onclick="scrollToSolutions()">
+              ✨ Review Solutions &amp; Remedies
+            </button>
+            <button class="btn-action-outline" onclick="openCounterOfferModal()">
+              ✉️ Open Counter-Offer Email
+            </button>
+            <button class="btn-action-outline" onclick="exportRedlineReport()">
+              📄 Export Redline Legal Report
+            </button>
+          </div>
+        </div>
+
+        <!-- Category Health Bars -->
+        <div class="category-breakdown-wrapper">
+          <div class="category-title">RISK CATEGORY HEALTH BREAKDOWN:</div>
+          <div class="category-grid" id="categoryBarsGrid">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Detailed Risky Causes & Solutions Section -->
+      <div class="section-heading-wrapper" id="solutionsHeaderAnchor">
+        <div>
+          <h2 class="section-title">Predatory Clauses &amp; Proposed Solutions</h2>
+          <p class="section-subtitle">
+            Every detected risky clause is paired with a <strong>plain-English breakdown</strong>, the <strong>legal danger</strong>, and a <strong>ready-to-use counter-offer solution clause</strong> you can ask the client to substitute.
+          </p>
+        </div>
+        <div class="filter-controls">
+          <button class="filter-chip active" onclick="filterRisks('ALL')">All Clauses (<span id="countFilterAll">0</span>)</button>
+          <button class="filter-chip filter-crit" onclick="filterRisks('CRITICAL')">🚨 Critical (<span id="countFilterCrit">0</span>)</button>
+          <button class="filter-chip filter-high" onclick="filterRisks('HIGH')">⚠️ High (<span id="countFilterHigh">0</span>)</button>
+          <button class="filter-chip filter-med" onclick="filterRisks('MEDIUM')">ℹ️ Medium (<span id="countFilterMed">0</span>)</button>
+        </div>
+      </div>
+
+      <!-- Risky Causes & Solutions Cards List -->
+      <div class="clauses-container" id="clausesContainer">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- Ready-To-Send Counter-Offer Email Panel -->
+      <div class="card counter-email-card" id="counterEmailSection">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">📧 Counter-Offer Email Generator</h3>
+            <p class="card-subtitle">Automatically drafted attorney-style email containing all proposed substitute clauses.</p>
+          </div>
+          <div class="email-buttons">
+            <button class="btn-secondary btn-sm" onclick="copyEmailToClipboard()">📋 Copy Email</button>
+            <button class="btn-primary btn-sm" onclick="openMailto()">🚀 Open in Mail App</button>
+          </div>
+        </div>
+        <div class="email-body-box">
+          <div class="email-meta">
+            <strong>Subject:</strong> <span id="emailSubject">Proposed Revisions: Independent Contractor Agreement</span>
+          </div>
+          <pre id="emailBodyText" class="email-pre"></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Toast Notification -->
+  <div id="toastNotification" class="toast hidden">Copied to clipboard!</div>
+
+  <!-- Modal for Counter-Offer Email -->
+  <div id="emailModal" class="modal-overlay hidden" onclick="closeModalOnBackdrop(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>✉️ Ready-to-Send Counter-Offer Email</h3>
+        <button class="btn-close" onclick="closeEmailModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-tip">Send this polite, professional message back to your client. It introduces your counter-offer clauses diplomatically without burning bridges.</p>
+        <div class="modal-email-preview">
+          <textarea id="modalEmailContent" rows="14"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeEmailModal()">Close</button>
+        <button class="btn-primary" onclick="copyModalEmail()">📋 Copy to Clipboard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      <div>
+        <strong>LexShield AI</strong> — Freelancer Legal Contract Analyzer &amp; Risky Clause Scorer
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+          Built for student freelancers, developers, designers, and creators. Level 2 Intermediate Solution.
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="#solutionsHeaderAnchor" onclick="scrollToTop()">Back to Top</a>
+        <a href="javascript:void(0)" onclick="loadSample('predatory_dev')">Sample 1 (High Risk)</a>
+        <a href="javascript:void(0)" onclick="loadSample('safe_fair')">Sample 2 (Fair)</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
