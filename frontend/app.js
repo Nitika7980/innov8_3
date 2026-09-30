@@ -696,10 +696,10 @@ function initLatePaymentTool() {
   const dueDateInput = document.getElementById("lateDueDate");
   if (dueDateInput && !dueDateInput.value) {
     const d = new Date();
-    d.setDate(d.getDate() - 15);
+    d.setDate(d.getDate() + 5);
     dueDateInput.value = d.toISOString().split("T")[0];
   }
-  runLateFeeCalculation();
+  handleDueDateChange();
 }
 
 function toggleLateTool() {
@@ -733,13 +733,26 @@ function scrollToLateTool() {
 function handleDueDateChange() {
   const dueDateInput = document.getElementById("lateDueDate");
   const daysInput = document.getElementById("lateDays");
+  const reminderBadge = document.getElementById("reminder2DayBadge");
   if (!dueDateInput || !daysInput || !dueDateInput.value) return;
   
-  const due = new Date(dueDateInput.value);
+  const due = new Date(dueDateInput.value + "T00:00:00");
   const now = new Date();
+  now.setHours(0, 0, 0, 0);
+
+  // Reminder date is exactly 2 days before due date
+  const reminderDate = new Date(due);
+  reminderDate.setDate(reminderDate.getDate() - 2);
+  const reminderStr = reminderDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+
+  if (reminderBadge) {
+    reminderBadge.innerHTML = `⏰ Send Reminder On: <strong>${reminderStr}</strong> (2 Days Before)`;
+  }
+
+  // Calculate days overdue
   const diffTime = now - due;
-  const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
-  daysInput.value = diffDays;
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  daysInput.value = Math.max(0, diffDays);
   runLateFeeCalculation();
 }
 
@@ -749,6 +762,17 @@ function runLateFeeCalculation() {
   const rateMonthly = Math.max(0, parseFloat(document.getElementById("lateRate")?.value || 1.5));
   const daysOverdue = Math.max(0, parseInt(document.getElementById("lateDays")?.value || 0));
   const flatFee = Math.max(0, parseFloat(document.getElementById("lateFlatFee")?.value || 0));
+  const dueDateVal = document.getElementById("lateDueDate")?.value;
+
+  let dueDateFormatted = "[Due Date]";
+  let reminderDateFormatted = "[2 Days Prior Date]";
+  if (dueDateVal) {
+    const d = new Date(dueDateVal + "T00:00:00");
+    dueDateFormatted = d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    const r = new Date(d);
+    r.setDate(r.getDate() - 2);
+    reminderDateFormatted = r.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  }
 
   // Daily interest calculation: (monthly / 30) / 100
   const dailyRate = (rateMonthly / 100) / 30;
@@ -775,10 +799,10 @@ function runLateFeeCalculation() {
       statusPill.style.borderColor = "var(--warning-border)";
       statusPill.style.color = "var(--warning)";
     } else {
-      statusPill.innerHTML = `✅ <strong>Current on Schedule:</strong> No overdue delay detected yet. If payment date is missed, late interest (${rateMonthly}%/mo) will automatically apply.`;
-      statusPill.style.background = "var(--success-bg)";
-      statusPill.style.borderColor = "var(--success-border)";
-      statusPill.style.color = "var(--success)";
+      statusPill.innerHTML = `⏰ <strong>Upcoming Due Date (${dueDateFormatted}):</strong> Send the <strong>2-Day Advance Courtesy Reminder</strong> on <strong>${reminderDateFormatted}</strong> so client doesn't miss the date!`;
+      statusPill.style.background = "var(--primary-light)";
+      statusPill.style.borderColor = "rgba(59, 130, 246, 0.35)";
+      statusPill.style.color = "var(--primary)";
     }
   }
 
@@ -786,7 +810,32 @@ function runLateFeeCalculation() {
   const clausePreview = document.getElementById("lateClausePreviewText");
   if (clausePreview) {
     clausePreview.textContent = 
-`"Late Payment Penalty and Overdue Invoices: Payment of all invoices shall be strictly due within [Net-14 / Net-30] calendar days of issuance. If Client fails to make payment on or before the agreed due date, Client shall incur and pay an additional late payment penalty interest of ${rateMonthly}% per month (or the maximum allowable rate by statutory law), calculated daily on the outstanding balance from the due date until paid in full. Freelancer reserves the right to immediately pause all active services and withhold deliverable licenses until all overdue amounts and extra late payment penalties are settled in full."`;
+`"Late Payment Penalty and Pre-Due Courtesy Notice: Payment of all invoices shall be strictly due within [Net-14 / Net-30] calendar days of issuance. Freelancer shall issue a courtesy invoice reminder two (2) calendar days prior to the payment due date. If Client fails to make payment on or before the agreed due date, Client shall incur and pay an additional late payment penalty interest of ${rateMonthly}% per month (or the maximum allowable rate by statutory law), calculated daily on the outstanding balance from the due date until paid in full. Freelancer reserves the right to immediately pause all active services and withhold deliverable licenses until all overdue amounts and extra late payment penalties are settled in full."`;
+  }
+
+  // Update 2-Day Pre-Due Reminder Email Preview
+  const reminderPreview = document.getElementById("lateReminderPreviewText");
+  if (reminderPreview) {
+    reminderPreview.textContent = 
+`Subject: Friendly Reminder: Invoice for ${fmt(amount)} is due in 2 days (${dueDateFormatted})
+
+Dear [Client Name / Hiring Manager],
+
+Hope you are having a great week!
+
+This is a quick courtesy reminder that Invoice #[Invoice Number] in the amount of ${fmt(amount)} for [Project Name / Milestone Deliverables] is scheduled for payment in two (2) days on ${dueDateFormatted}.
+
+To keep project development and milestone delivery moving forward seamlessly without interruption or late fee accrual (${rateMonthly}%/month after due date), please process payment via your preferred method:
+- Payment Link / Portal: [Insert Payment Link]
+- Direct Bank Wire / UPI: [Insert Bank/UPI Details]
+
+If payment has already been scheduled or initiated, please feel free to disregard this note and reply with the transaction receipt.
+
+Thank you very much for your partnership and prompt collaboration!
+
+Warm regards,
+[Your Name]
+Freelance Contractor | [Your Contact Details]`;
   }
 
   // Update Overdue Notice Email Preview
@@ -797,7 +846,7 @@ function runLateFeeCalculation() {
 
 Dear [Client Name / Hiring Manager],
 
-This is a formal payment notice regarding your outstanding invoice in the amount of ${fmt(amount)}, which was due on [Due Date] and is currently ${daysOverdue} days past due.
+This is a formal payment notice regarding your outstanding invoice in the amount of ${fmt(amount)}, which was due on ${dueDateFormatted} and is currently ${daysOverdue} days past due.
 
 In accordance with standard independent contractor terms and our agreed payment policy, overdue balances accrue an additional late payment interest fee of ${rateMonthly}% per month (${fmt(interest)}${flatFee > 0 ? ` plus a ${fmt(flatFee)} administrative surcharge` : ''}).
 
@@ -821,20 +870,24 @@ Freelance Contractor | [Your Contact Details]`;
 
 function switchLatePreviewTab(tab) {
   const clauseBtn = document.getElementById("tabLateClauseBtn");
+  const reminderBtn = document.getElementById("tabLateReminderBtn");
   const emailBtn = document.getElementById("tabLateEmailBtn");
   const clauseBox = document.getElementById("lateClausePreviewContainer");
+  const reminderBox = document.getElementById("lateReminderPreviewContainer");
   const emailBox = document.getElementById("lateEmailPreviewContainer");
+
+  [clauseBtn, reminderBtn, emailBtn].forEach(b => b?.classList.remove("active"));
+  [clauseBox, reminderBox, emailBox].forEach(b => b?.classList.add("hidden"));
 
   if (tab === "clause") {
     clauseBtn?.classList.add("active");
-    emailBtn?.classList.remove("active");
     clauseBox?.classList.remove("hidden");
-    emailBox?.classList.add("hidden");
+  } else if (tab === "reminder") {
+    reminderBtn?.classList.add("active");
+    reminderBox?.classList.remove("hidden");
   } else {
     emailBtn?.classList.add("active");
-    clauseBtn?.classList.remove("active");
     emailBox?.classList.remove("hidden");
-    clauseBox?.classList.add("hidden");
   }
 }
 
@@ -843,6 +896,15 @@ function copyLatePenaltyClause() {
   if (preview) {
     navigator.clipboard.writeText(preview.textContent.trim()).then(() => {
       showToast(t("toast_copied_late_clause", "Late Payment Contract Clause copied to clipboard!"));
+    });
+  }
+}
+
+function copyLate2DayReminderEmail() {
+  const preview = document.getElementById("lateReminderPreviewText");
+  if (preview) {
+    navigator.clipboard.writeText(preview.textContent.trim()).then(() => {
+      showToast(t("toast_copied_reminder", "2-Day Pre-Due Reminder Email copied to clipboard!"));
     });
   }
 }

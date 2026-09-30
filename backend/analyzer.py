@@ -146,8 +146,9 @@ TRAP_RULES = [
             "Freelancers routinely get pushed to the bottom of the client's payment queue unless there is an extra fee for delayed payments."
         ),
         "solution_clause": (
-            "\"Late Payment Penalty and Overdue Invoices: Payment of all invoices shall be strictly due within [Net-14 / Net-30] "
-            "calendar days of issuance. If Client fails to pay on or before the agreed due date, Client shall incur and pay an additional "
+            "\"Late Payment Penalty and Pre-Due Courtesy Notice: Payment of all invoices shall be strictly due within [Net-14 / Net-30] "
+            "calendar days of issuance. Freelancer shall issue a courtesy invoice reminder two (2) calendar days prior to the payment due date. "
+            "If Client fails to make payment on or before the agreed due date, Client shall incur and pay an additional "
             "late payment fee / interest at the rate of 1.5% per month (or the maximum allowable rate by law), calculated daily on the "
             "outstanding balance from the due date until paid in full. Freelancer reserves the right to immediately pause all active services "
             "and withhold project deliverables until all overdue balances and extra late payment penalties are settled in full.\""
@@ -396,8 +397,9 @@ def analyze_contract_text(contract_text: str) -> Dict[str, Any]:
                 "Freelancers routinely get pushed to the bottom of the client's payment queue unless there is a financial penalty for delayed payments."
             ),
             "solution_clause": (
-                "\"Late Payment Penalty and Overdue Invoices: Payment of all invoices shall be strictly due within [Net-14 / Net-30] "
-                "calendar days of issuance. If Client fails to make payment on or before the agreed due date, Client shall incur and pay an additional "
+                "\"Late Payment Penalty and Pre-Due Courtesy Notice: Payment of all invoices shall be strictly due within [Net-14 / Net-30] "
+                "calendar days of issuance. Freelancer shall issue a courtesy invoice reminder two (2) calendar days prior to the payment due date. "
+                "If Client fails to make payment on or before the agreed due date, Client shall incur and pay an additional "
                 "late payment fee / interest at the rate of 1.5% per month (or the maximum allowable rate by law), calculated daily on the "
                 "outstanding balance from the due date until paid in full. Freelancer reserves the right to immediately pause all active services "
                 "and withhold deliverable licenses until all overdue amounts and extra late payment penalties are settled in full.\""
@@ -524,13 +526,31 @@ def calculate_late_fee(
     total_due = round(amount + extra_payment, 2)
     
     clause_text = (
-        f"\"Late Payment Penalty and Overdue Invoices: Payment of all invoices shall be strictly due within [Net-14 / Net-30] "
-        f"calendar days of issuance. If Client fails to make payment on or before the agreed due date, Client shall incur and pay "
-        f"an additional late payment penalty interest of {monthly_rate_percent}% per month (or the maximum allowable by statutory law) "
+        f"\"Late Payment Penalty and Pre-Due Courtesy Notice: Payment of all invoices shall be strictly due within [Net-14 / Net-30] "
+        f"calendar days of issuance. Freelancer shall issue a courtesy invoice reminder two (2) calendar days prior to the payment due date. "
+        f"If Client fails to make payment on or before the agreed due date, Client shall incur and pay an additional "
+        f"late payment penalty interest of {monthly_rate_percent}% per month (or the maximum allowable by statutory law) "
         f"calculated daily on the outstanding balance from the due date until paid in full. Freelancer reserves the right to immediately "
         f"suspend all active services and withhold project deliverables until all overdue balances and extra late fees are settled in full.\""
     )
     
+    reminder_2day_email = {
+        "subject": f"Friendly Reminder: Invoice for {currency}{amount:,.2f} is due in 2 days ([Due Date])",
+        "body": (
+            f"Dear [Client Name / Hiring Manager],\n\n"
+            f"Hope you are having a productive week!\n\n"
+            f"This is a quick courtesy reminder that Invoice #[Invoice Number] in the amount of {currency}{amount:,.2f} "
+            f"for [Project Name / Milestone Deliverables] is scheduled for payment in two (2) days on [Due Date].\n\n"
+            f"To keep project development and milestone delivery moving forward seamlessly without interruption or late fee accrual "
+            f"({monthly_rate_percent}%/month after due date), please process payment via your preferred method:\n"
+            f"- Payment Link / Portal: [Insert Link]\n"
+            f"- Direct Bank Wire / UPI: [Insert Details]\n\n"
+            f"If payment has already been scheduled or initiated, please feel free to disregard this note and reply with the transaction receipt.\n\n"
+            f"Thank you very much for your partnership and prompt collaboration!\n\n"
+            f"Warm regards,\n[Your Name]\nFreelance Contractor | [Contact Information]"
+        )
+    }
+
     notice_email = {
         "subject": f"URGENT: Overdue Invoice Notice — Late Payment Fee Applied ({currency}{extra_payment:,.2f})",
         "body": (
@@ -559,6 +579,7 @@ def calculate_late_fee(
         "extra_payment": extra_payment,
         "total_due": total_due,
         "clause_text": clause_text,
-        "notice_email": notice_email
+        "notice_email": notice_email,
+        "reminder_2day_email": reminder_2day_email
     }
 

@@ -181,11 +181,12 @@
                 <div class="form-group">
                   <label class="form-label" data-i18n="late_label_due_date">Original Due Date</label>
                   <input type="date" id="lateDueDate" class="form-input" onchange="handleDueDateChange()" />
+                  <div id="reminder2DayBadge" class="reminder-date-chip">⏰ Reminder Date: <strong>--</strong> (2 days before)</div>
                 </div>
 
                 <div class="form-group">
                   <label class="form-label" data-i18n="late_label_days">Days Delayed / Overdue</label>
-                  <input type="number" id="lateDays" class="form-input" value="15" min="1" max="365" oninput="runLateFeeCalculation()" />
+                  <input type="number" id="lateDays" class="form-input" value="15" min="0" max="365" oninput="runLateFeeCalculation()" />
                 </div>
               </div>
 
@@ -219,7 +220,10 @@
               <!-- Action buttons -->
               <div class="late-actions-row">
                 <button class="btn-primary btn-sm" onclick="copyLatePenaltyClause()">
-                  <span data-i18n="btn_copy_late_clause">📋 Copy Late Payment Clause for Contract</span>
+                  <span data-i18n="btn_copy_late_clause">📋 Copy Late Payment Clause</span>
+                </button>
+                <button class="btn-warning btn-sm" onclick="copyLate2DayReminderEmail()">
+                  <span data-i18n="btn_copy_reminder">⏰ Copy 2-Day Pre-Due Reminder Email</span>
                 </button>
                 <button class="btn-secondary btn-sm" onclick="copyLateNoticeEmail()">
                   <span data-i18n="btn_copy_late_notice">📧 Copy Overdue Notice &amp; Extra Fee Email</span>
@@ -228,18 +232,24 @@
             </div>
           </div>
 
-          <!-- Preview Drawer: Tabs for Contract Clause vs Overdue Email -->
+          <!-- Preview Drawer: Tabs for Contract Clause vs 2-Day Reminder vs Overdue Email -->
           <div class="late-preview-box">
             <div class="late-preview-tabs">
-              <button class="late-tab-btn active" id="tabLateClauseBtn" onclick="switchLatePreviewTab('clause')">
+              <button class="late-tab-btn active" id="tabLateClauseBtn" data-i18n="late_tab_clause" onclick="switchLatePreviewTab('clause')">
                 📄 Ironclad Contract Clause (Add Before Signing)
               </button>
-              <button class="late-tab-btn" id="tabLateEmailBtn" onclick="switchLatePreviewTab('email')">
-                ✉️ Overdue Notice &amp; Extra Fee Demand Email
+              <button class="late-tab-btn" id="tabLateReminderBtn" data-i18n="late_tab_reminder" onclick="switchLatePreviewTab('reminder')">
+                ⏰ 2-Day Courtesy Reminder Email (Send 48h Before Due Date)
+              </button>
+              <button class="late-tab-btn" id="tabLateEmailBtn" data-i18n="late_tab_notice" onclick="switchLatePreviewTab('email')">
+                🚨 Overdue Notice &amp; Extra Fee Demand Email (Send When Date is Missed)
               </button>
             </div>
             <div class="late-preview-content" id="lateClausePreviewContainer">
               <pre class="late-code-preview" id="lateClausePreviewText"></pre>
+            </div>
+            <div class="late-preview-content hidden" id="lateReminderPreviewContainer">
+              <pre class="late-code-preview" id="lateReminderPreviewText"></pre>
             </div>
             <div class="late-preview-content hidden" id="lateEmailPreviewContainer">
               <pre class="late-code-preview" id="lateEmailPreviewText"></pre>

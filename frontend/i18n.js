@@ -92,8 +92,13 @@ const UI_TRANSLATIONS = {
     late_kpi_extra: "Extra Late Fee Owed",
     late_kpi_total: "Total Client Must Pay",
     btn_copy_late_clause: "📋 Copy Late Payment Clause for Contract",
+    btn_copy_reminder: "⏰ Copy 2-Day Pre-Due Reminder Email",
     btn_copy_late_notice: "📧 Copy Overdue Notice & Extra Fee Email",
+    late_tab_clause: "📄 Ironclad Contract Clause (Add Before Signing)",
+    late_tab_reminder: "⏰ 2-Day Courtesy Reminder Email (Send 48h Before Due Date)",
+    late_tab_notice: "🚨 Overdue Notice & Extra Fee Demand Email (Send When Date is Missed)",
     toast_copied_late_clause: "Late Payment Contract Clause copied to clipboard!",
+    toast_copied_reminder: "2-Day Payment Reminder Email copied to clipboard!",
     toast_copied_late_notice: "Overdue Payment Notice Email copied to clipboard!"
   },
   hi: {
@@ -171,8 +176,13 @@ const UI_TRANSLATIONS = {
     late_kpi_extra: "अतिरिक्त विलंब जुर्माना (Extra Payment)",
     late_kpi_total: "क्लाइंट द्वारा देय कुल राशि",
     btn_copy_late_clause: "📋 अनुबंध हेतु विलंब शुल्क क्लॉज कॉपी करें",
+    btn_copy_reminder: "⏰ 2-दिन पूर्व अनुस्मारक ईमेल कॉपी करें",
     btn_copy_late_notice: "📧 अतिदेय भुगतान नोटिस ईमेल कॉपी करें",
+    late_tab_clause: "📄 मजबूत अनुबंध खंड (हस्ताक्षर करने से पहले जोड़ें)",
+    late_tab_reminder: "⏰ 2-दिन पूर्व सौजन्य अनुस्मारक ईमेल (नियत तारीख से 48 घंटे पहले भेजें)",
+    late_tab_notice: "🚨 अतिदेय नोटिस एवं अतिरिक्त शुल्क मांग ईमेल (तारीख चूकने पर भेजें)",
     toast_copied_late_clause: "विलंब शुल्क क्लॉज क्लिपबोर्ड पर कॉपी हो गया!",
+    toast_copied_reminder: "2-दिन पूर्व भुगतान अनुस्मारक ईमेल क्लिपबोर्ड पर कॉपी हो गया!",
     toast_copied_late_notice: "अतिदेय भुगतान नोटिस ईमेल कॉपी हो गया!"
   },
   bn: {
@@ -250,8 +260,13 @@ const UI_TRANSLATIONS = {
     late_kpi_extra: "অতিরিক্ত বিলম্ব ফি (Extra Payment)",
     late_kpi_total: "মোট প্রদেয় অর্থ",
     btn_copy_late_clause: "📋 চুক্তির জন্য বিলম্ব ফি ক্লজ কপি করুন",
+    btn_copy_reminder: "⏰ ২ দিন আগের পেমেন্ট রিমাইন্ডার ইমেল কপি করুন",
     btn_copy_late_notice: "📧 বকেয়া নোটিশ ও অতিরিক্ত ফি ইমেল কপি করুন",
+    late_tab_clause: "📄 শক্তিশালী চুক্তি ধারা (স্বাক্ষর করার আগে যোগ করুন)",
+    late_tab_reminder: "⏰ ২ দিন আগের সৌজন্য রিমাইন্ডার ইমেল (নির্ধারিত তারিখের ৪৮ ঘণ্টা আগে পাঠান)",
+    late_tab_notice: "🚨 বকেয়া নোটিশ ও অতিরিক্ত ফি দাবি ইমেল (তারিখ মিস হলে পাঠান)",
     toast_copied_late_clause: "দেরি ফি ক্লজ ক্লিপবোর্ডে কপি হয়েছে!",
+    toast_copied_reminder: "২ দিন আগের পেমেন্ট রিমাইন্ডার ইমেল ক্লিপবোর্ডে কপি হয়েছে!",
     toast_copied_late_notice: "বকেয়া পেমেন্ট নোটিশ ইমেল কপি হয়েছে!"
   },
   ta: {
@@ -329,8 +344,13 @@ const UI_TRANSLATIONS = {
     late_kpi_extra: "கூடுதல் தாமத அபராதம் (Extra Payment)",
     late_kpi_total: "மொத்தம் செலுத்த வேண்டிய தொகை",
     btn_copy_late_clause: "📋 ஒப்பந்தத்திற்கான தாமத விதிமுறையை நகலெடுக்கவும்",
+    btn_copy_reminder: "⏰ 2 நாட்களுக்கு முந்தைய நினைவூட்டல் மின்னஞ்சலை நகலெடுக்கவும்",
     btn_copy_late_notice: "📧 நிலுவைத் தொகை அறிவிப்பு மின்னஞ்சலை நகலெடுக்கவும்",
+    late_tab_clause: "📄 வலுவான ஒப்பந்த விதிமுறை (கையொப்பமிடும் முன் சேர்க்கவும்)",
+    late_tab_reminder: "⏰ 2 நாட்களுக்கு முந்தைய நினைவூட்டல் மின்னஞ்சல் (கடைசி தேதிக்கு 48 மணிநேரம் முன் அனுப்பவும்)",
+    late_tab_notice: "🚨 நிலுவைத் தொகை அறிவிப்பு & கூடுதல் கட்டணக் கோரிக்கை மின்னஞ்சல் (தேதி தவறினால் அனுப்பவும்)",
     toast_copied_late_clause: "தாமத கட்டண விதிமுறை நகலெடுக்கப்பட்டது!",
+    toast_copied_reminder: "2 நாட்களுக்கு முந்தைய கட்டண நினைவூட்டல் மின்னஞ்சல் நகலெடுக்கப்பட்டது!",
     toast_copied_late_notice: "நிலுவைத் தொகை அறிவிப்பு மின்னஞ்சல் நகலெடுக்கப்பட்டது!"
   },
   te: {
@@ -408,8 +428,13 @@ const UI_TRANSLATIONS = {
     late_kpi_extra: "అదనపు ఆలస్య రుసుము (Extra Payment)",
     late_kpi_total: "క్లయింట్ చెల్లించాల్సిన మొత్తం",
     btn_copy_late_clause: "📋 ఒప్పందం కోసం ఆలస్య రుసుము క్లాజ్ కాపీ చేయండి",
+    btn_copy_reminder: "⏰ 2 రోజుల ముందు రిమైండర్ ఇమెయిల్‌ను కాపీ చేయండి",
     btn_copy_late_notice: "📧 బకాయిల నోటీసు మరియు అదనపు రుసుము ఇమెయిల్ కాపీ చేయండి",
+    late_tab_clause: "📄 బలమైన ఒప్పంద క్లాజ్ (సంతకం చేయడానికి ముందు జోడించండి)",
+    late_tab_reminder: "⏰ 2 రోజుల ముందు మర్యాదపూర్వక రిమైండర్ ఇమెయిల్ (గడువుకు 48 గంటల ముందు పంపండి)",
+    late_tab_notice: "🚨 బకాయిల నోటీసు & అదనపు రుసుము డిమాండ్ ఇమెయిల్ (తేదీ దాటినప్పుడు పంపండి)",
     toast_copied_late_clause: "ఆలస్య రుసుము క్లాజ్ కాపీ చేయబడింది!",
+    toast_copied_reminder: "2 రోజుల ముందు చెల్లింపు రిమైండర్ ఇమెయిల్ కాపీ చేయబడింది!",
     toast_copied_late_notice: "బకాయిల నోటీసు ఇమెయిల్ కాపీ చేయబడింది!"
   }
 };
