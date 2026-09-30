@@ -416,11 +416,11 @@ function renderCategoryBars(categories) {
     card.className = "category-card";
     card.innerHTML = `
       <div class="category-header">
-        <span>${cat.category}</span>
-        <span style="color: ${color}; font-weight: 700;">${cat.health}% Safe</span>
+        <span>${escapeHtml(cat.category)}</span>
+        <span style="color: ${color}; font-weight: 700;">${Number(cat.health) || 0}% Safe</span>
       </div>
       <div class="category-bar-bg">
-        <div class="category-bar-fill" style="width: ${cat.health}%; background-color: ${color};"></div>
+        <div class="category-bar-fill" style="width: ${Number(cat.health) || 0}%; background-color: ${color};"></div>
       </div>
     `;
     container.appendChild(card);

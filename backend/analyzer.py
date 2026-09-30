@@ -17,13 +17,13 @@ TRAP_RULES = [
         "weight": 25,
         "patterns": [
             r"regardless\s+of\s+whether\s+payment\s+has\s+been\s+made",
-            r"(sole|exclusive)\s+property.*?from\s+the\s+moment\s+of\s+(conception|creation)",
+            r"(sole|exclusive)\s+property[^\n\r]{0,80}?from\s+the\s+moment\s+of\s+(conception|creation)",
             r"transfer\s+automatically\s+upon\s+(generation|creation)",
-            r"belong\s+exclusively\s+to\s+.*?\s+upon\s+creation",
+            r"belong\s+exclusively\s+to\s+[^\n\r]{0,80}?upon\s+creation",
             r"prior\s+to\s+payment\s+receipt",
             r"waives?\s+all\s+moral\s+rights",
-            r"assigns?\s+all.*?regardless\s+of\s+payment",
-            r"work\s+made\s+for\s+hire.*?without\s+regard\s+to\s+compensation"
+            r"assigns?\s+all[^\n\r]{0,80}?regardless\s+of\s+payment",
+            r"work\s+made\s+for\s+hire[^\n\r]{0,80}?without\s+regard\s+to\s+compensation"
         ],
         "plain_translation": "The client becomes the 100% legal owner of your code, designs, and work the second you write it—even if they ghost you and never pay you a single rupee.",
         "why_risky": "If the client defaults, terminates early, or refuses to pay, you have already forfeited all legal claims to your own work. You cannot withhold the work or resell it to recoup your financial loss.",
@@ -50,7 +50,7 @@ TRAP_RULES = [
             r"endless\s+(rounds|revisions)",
             r"revisions\s+and\s+modifications\s+at\s+no\s+additional\s+charge",
             r"until\s+(the\s+)?(client|company)\s+(expresses\s+)?(100%\s+)?(subjective\s+)?satisfaction",
-            r"no\s+additional\s+billing.*?for\s+(edits|changes|revisions)",
+            r"no\s+additional\s+billing[^\n\r]{0,80}?for\s+(edits|changes|revisions)",
             r"unlimited\s+modifications",
             r"as\s+many\s+revisions\s+as\s+requested"
         ],
@@ -76,10 +76,10 @@ TRAP_RULES = [
         "patterns": [
             r"period\s+of\s+(two|three|four|five|\d+)\s+(\(\d+\)\s+)?years\s+following",
             r"anywhere\s+in\s+the\s+world",
-            r"perpetual.*?non-compete",
-            r"shall\s+not\s+(directly\s+or\s+indirectly\s+)?(develop|consult|provide).*?sector",
+            r"perpetual[^\n\r]{0,80}?non-compete",
+            r"shall\s+not\s+(directly\s+or\s+indirectly\s+)?(develop|consult|provide)[^\n\r]{0,100}?sector",
             r"not\s+to\s+work\s+with\s+any\s+(direct\s+)?competitor",
-            r"exclusivity.*?prohibits.*?other\s+clients"
+            r"exclusivity[^\n\r]{0,50}?prohibits[^\n\r]{0,50}?other\s+clients"
         ],
         "plain_translation": "You are forbidden from working for any other client or company in your entire industry, often worldwide, for 1 to 3+ years after this contract ends.",
         "why_risky": "This destroys a student or freelancer's career and livelihood. In many jurisdictions (like India under Section 27 of the Contract Act and California), post-employment non-competes are void, but clients still use them to bully freelancers into turning down gigs.",
@@ -105,7 +105,7 @@ TRAP_RULES = [
             r"pay-?when-?paid",
             r"contingent\s+upon\s+(client|company)\s+(securing|receiving)",
             r"waives\s+all\s+right\s+to\s+compensation\s+for\s+hours",
-            r"withhold.*?retainer\s+for\s+\d+\s+days",
+            r"withhold[^\n\r]{0,80}?retainer\s+for\s+\d+\s+days",
             r"payment\s+will\s+be\s+released\s+60\s+business\s+days",
             r"upon\s+unconditional\s+acceptance\s+of\s+the\s+entire\s+project"
         ],
@@ -128,11 +128,11 @@ TRAP_RULES = [
         "severity": "HIGH",
         "weight": 15,
         "patterns": [
-            r"terminate.*?at\s+any\s+time.*?without\s+(cause|notice)",
+            r"terminate[^\n\r]{0,80}?at\s+any\s+time[^\n\r]{0,80}?without\s+(cause|notice)",
             r"no\s+obligation\s+to\s+compensate\s+freelancer\s+for\s+any\s+work\s+completed",
-            r"freelancer\s+may\s+not\s+terminate.*?under\s+any\s+circumstances",
-            r"cancel\s+this\s+contract\s+at\s+any\s+point\s+without\s+financial\s+liability",
-            r"immediate.*?verbal\s+or\s+written\s+notice.*?without\s+payment"
+            r"freelancer\s+may\s+not\s+terminate[^\n\r]{0,80}?under\s+any\s+circumstances",
+            r"cancel\s+this\s+contract\s+at\s+any\s+point[^\n\r]{0,80}?without\s+financial\s+liability",
+            r"immediate[^\n\r]{0,80}?verbal\s+or\s+written\s+notice[^\n\r]{0,80}?without\s+payment"
         ],
         "plain_translation": "The client can fire you whenever they feel like it without paying you for work you already completed, while you are trapped and not allowed to quit.",
         "why_risky": "You could build 90% of the project, spend 100 hours of effort, and get terminated with $0 compensation. Termination clauses must be mutual and require payment for work done.",
@@ -153,11 +153,11 @@ TRAP_RULES = [
         "weight": 20,
         "patterns": [
             r"without\s+financial\s+limitation",
-            r"freelancer('s)?\s+liability.*?shall\s+be\s+unlimited",
-            r"defend,\s+indemnify,\s+and\s+hold\s+harmless.*?without\s+limit",
+            r"freelancer('s)?\s+liability[^\n\r]{0,80}?shall\s+be\s+unlimited",
+            r"defend,\s+indemnify,\s+and\s+hold\s+harmless[^\n\r]{0,80}?without\s+limit",
             r"assumes\s+sole\s+personal\s+legal\s+liability",
-            r"liability.*?capped\s+at\s+(three|five|\d+)\s+times.*?fees",
-            r"third-party\s+library\s+vulnerabilities.*?without.*?limit"
+            r"liability[^\n\r]{0,80}?capped\s+at\s+(three|five|\d+)\s+times[^\n\r]{0,80}?fees",
+            r"third-party\s+library\s+vulnerabilities[^\n\r]{0,80}?without[^\n\r]{0,80}?limit"
         ],
         "plain_translation": "If a third party sues the client or if an open-source bug exists, you personally have to pay all their multi-million-dollar court awards and lawyer bills.",
         "why_risky": "As a student or solo freelancer earning a few thousand dollars, an uncapped indemnity clause can cause personal bankruptcy over a minor third-party patent or copyright dispute.",
@@ -178,11 +178,11 @@ TRAP_RULES = [
         "severity": "MEDIUM",
         "weight": 10,
         "patterns": [
-            r"strictly\s+prohibited\s+from\s+displaying.*?in\s+freelancer('s)?\s+personal\s+portfolio",
+            r"strictly\s+prohibited\s+from\s+displaying[^\n\r]{0,80}?in\s+freelancer('s)?\s+personal\s+portfolio",
             r"not\s+disclose\s+that\s+client\s+was\s+a\s+client",
-            r"shall\s+not\s+(disclose|upload|feature).*?on\s+(behance|dribbble|github|resume)",
-            r"liquidated\s+damages\s+of\s+\$?\d+.*?for\s+(criticism|disparagement|comment)",
-            r"portfolio\s+restrictions.*?in\s+perpetuity"
+            r"shall\s+not\s+(disclose|upload|feature)[^\n\r]{0,80}?on\s+(behance|dribbble|github|resume)",
+            r"liquidated\s+damages\s+of\s+\$?\d+[^\n\r]{0,80}?for\s+(criticism|disparagement|comment)",
+            r"portfolio\s+restrictions[^\n\r]{0,80}?in\s+perpetuity"
         ],
         "plain_translation": "You cannot show the work you built in your portfolio, GitHub, or resume, and you cannot even mention that you worked for this client.",
         "why_risky": "For students and freelancers, proof of work is critical for landing future jobs and clients. Completely stripping portfolio rights hampers career growth.",
@@ -204,7 +204,7 @@ TRAP_RULES = [
         "patterns": [
             r"penalty\s+deduction\s+of\s+\d+%\s+per\s+day",
             r"liquidated\s+damages\s+of\s+\$?\d+",
-            r"time\s+is\s+of\s+the\s+essence.*?penalty"
+            r"time\s+is\s+of\s+the\s+essence[^\n\r]{0,80}?penalty"
         ],
         "plain_translation": "If you miss a deadline by a few days (even due to delayed client feedback), they can deduct 10% per day, slashing your entire pay to zero.",
         "why_risky": "Client delays in feedback or asset delivery frequently cause timeline shifts. If the contractor shoulders all deadline risk, they end up working for free.",
@@ -224,8 +224,8 @@ TRAP_RULES = [
         "severity": "MEDIUM",
         "weight": 10,
         "patterns": [
-            r"litigated\s+exclusively\s+in\s+the.*?courts\s+of\s+(delaware|new\s+york|california|london|singapore)",
-            r"cover\s+all\s+of\s+client('s)?\s+attorney\s+fees\s+regardless\s+of\s+outcome",
+            r"litigated\s+exclusively\s+in\s+the[^\n\r]{0,80}?courts\s+of\s+(delaware|new\s+york|california|london|singapore)",
+            r"cover\s+all\s+of\s+client('s)?\s+attorney\s+fees[^\n\r]{0,80}?regardless\s+of\s+outcome",
             r"waives\s+any\s+objection\s+to\s+venue"
         ],
         "plain_translation": "If the client doesn't pay you, you have to fly to a distant court (e.g. Delaware or another country) and pay all their legal fees even if you were in the right.",
@@ -274,6 +274,10 @@ def analyze_contract_text(contract_text: str) -> Dict[str, Any]:
     if not contract_text or len(contract_text.strip()) < 50:
         return {
             "error": "Contract text is too short or empty. Please provide at least 50 characters."
+        }
+    if len(contract_text) > 500_000:
+        return {
+            "error": "Contract text exceeds safe maximum processing limit (500,000 characters). Please provide a standard length agreement."
         }
 
     total_possible_penalty = 0
