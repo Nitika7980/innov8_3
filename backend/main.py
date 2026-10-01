@@ -42,6 +42,7 @@ current_dir = Path(__file__).resolve().parent
 sys.path.insert(0, str(current_dir))
 
 from analyzer import analyze_contract_text, analyze_contract_with_gemini, calculate_late_fee
+from sample_contracts import SAMPLE_CONTRACTS
 from db import (
     get_db_status, record_contract_scan, fetch_user_scans,
     record_payment_tracker, fetch_user_payments, delete_payment_tracker
@@ -172,8 +173,14 @@ class LatePaymentRequest(BaseModel):
 # OWASP A04: Safe Document Ingestion with Decompression Bomb Protections
 def extract_text_from_file(filename: str, content: bytes) -> str:
     """Extracts raw text from uploaded PDF, DOCX, or TXT safely in memory with resource limits."""
-    filename_lower = filename.lower()
-    
+    # Validate file extension strictly
+    allowed_extensions = (".pdf", ".docx", ".txt")
+    if not any(filename_lower.endswith(ext) for ext in allowed_extensions):
+        raise HTTPException(
+            status_code=400,
+            detail="Wrong file type. Only PDF, DOCX, or TXT contract files are supported. Please upload a valid contract document."
+        )
+
     if filename_lower.endswith(".txt"):
         try:
             return content.decode("utf-8")
@@ -184,7 +191,6 @@ def extract_text_from_file(filename: str, content: bytes) -> str:
         try:
             import pypdf
             reader = pypdf.PdfReader(io.BytesIO(content))
-            # Protect against multi-thousand page denial-of-service files
             if len(reader.pages) > 100:
                 raise HTTPException(status_code=400, detail="PDF has too many pages (maximum 100 pages supported).")
             extracted_pages = []
@@ -196,7 +202,7 @@ def extract_text_from_file(filename: str, content: bytes) -> str:
             raise
         except Exception as e:
             security_logger.warning(f"Failed to parse PDF document '{filename}': {str(e)}")
-            raise HTTPException(status_code=400, detail=f"Failed to parse PDF document safely: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Wrong or corrupted PDF file. Could not extract readable contract text: {str(e)}")
             
     elif filename_lower.endswith(".docx"):
         try:
@@ -204,7 +210,6 @@ def extract_text_from_file(filename: str, content: bytes) -> str:
             with zipfile.ZipFile(io.BytesIO(content)) as z:
                 total_uncompressed_size = sum(file_info.file_size for file_info in z.infolist())
                 compressed_size = max(1, len(content))
-                # Reject if uncompressed size exceeds 25MB or compression ratio exceeds 100:1
                 if total_uncompressed_size > 25 * 1024 * 1024 or (total_uncompressed_size / compressed_size > 100):
                     security_logger.warning(f"Decompression bomb rejected: size={total_uncompressed_size}, ratio={total_uncompressed_size / compressed_size}")
                     raise HTTPException(status_code=400, detail="Decompression bomb detected. File rejected for security.")
@@ -216,14 +221,16 @@ def extract_text_from_file(filename: str, content: bytes) -> str:
             raise
         except Exception as e:
             security_logger.warning(f"Failed to parse DOCX document '{filename}': {str(e)}")
-            raise HTTPException(status_code=400, detail=f"Failed to parse DOCX document: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Wrong or corrupted DOCX file: {str(e)}")
             
     else:
-        # Fallback raw decoding
-        try:
-            return content.decode("utf-8")
-        except Exception:
-            raise HTTPException(status_code=400, detail="Unsupported file format. Please upload PDF, DOCX, or TXT.")
+        raise HTTPException(status_code=400, detail="Wrong file type. Please upload a valid contract PDF, DOCX, or TXT file.")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Favicon endpoint to prevent browser 404 errors."""
+    return JSONResponse(content={}, status_code=204)
 
 
 @app.get("/api/health")
@@ -264,9 +271,10 @@ async def get_samples():
 @app.get("/api/sample/{sample_id}")
 async def get_sample_content(sample_id: str):
     """Returns full content of a specific preloaded sample contract."""
-    if sample_id not in SAMPLE_CONTRACTS:
+    key = sample_id.strip().lower().replace(" ", "_")
+    if key not in SAMPLE_CONTRACTS:
         raise HTTPException(status_code=404, detail="Sample contract not found")
-    return SAMPLE_CONTRACTS[sample_id]
+    return SAMPLE_CONTRACTS[key]
 
 
 @app.post("/api/analyze")
@@ -341,9 +349,14 @@ async def upload_contract(req: Request, file: UploadFile = File(...)):
     del content  # Sandboxed privacy compliance: immediate memory purge
     
     if len(extracted_text.strip()) < 50:
-        raise HTTPException(status_code=400, detail="The uploaded document contains little to no readable text.")
+        raise HTTPException(
+            status_code=400,
+            detail="Wrong or invalid PDF/TXT file. The uploaded document contains little to no readable contract text."
+        )
         
     analysis = analyze_contract_text(extracted_text)
+    if "error" in analysis:
+        raise HTTPException(status_code=400, detail=analysis["error"])
 
     # Track scan telemetry for admin dashboard
     from admin import record_scan_metrics

@@ -320,11 +320,30 @@ def analyze_contract_text(contract_text: str) -> Dict[str, Any]:
     """
     if not contract_text or len(contract_text.strip()) < 50:
         return {
-            "error": "Contract text is too short or empty. Please provide at least 50 characters."
+            "error": "Contract text is too short or empty. Please provide at least 50 characters of a legal contract."
         }
     if len(contract_text) > 500_000:
         return {
             "error": "Contract text exceeds safe maximum processing limit (500,000 characters). Please provide a standard length agreement."
+        }
+
+    # Verify if document contains essential legal / contract terms
+    CONTRACT_TERMS = [
+        r"\b(agreement|contract|terms|parties|client|freelancer|contractor|consultant|service provider|developer|designer|vendor)\b",
+        r"\b(services|deliverables|scope|work|obligations|responsibilities|milestones)\b",
+        r"\b(payment|fees|compensation|invoic|amount|rate|billing|remit|deposit)\b",
+        r"\b(intellectual property|copyright|ownership|work made for hire|rights|license|assign)\b",
+        r"\b(termination|terminate|expire|term|notice|breach|cancel)\b",
+        r"\b(confidential|indemn|liabil|warrant|governing law|dispute|jurisdiction)\b",
+        r"\b(clause|section|shall|hereby|hereto|thereunder|wherefore|witnesseth)\b"
+    ]
+    
+    matches_count = sum(1 for pat in CONTRACT_TERMS if re.search(pat, contract_text, re.IGNORECASE))
+    
+    # Must match at least 2 distinct legal / contract term categories
+    if matches_count < 2:
+        return {
+            "error": "Invalid Document: The uploaded PDF/TXT does not appear to be a legal agreement or contract. Please upload a valid contract document (e.g. Freelance Agreement, NDA, SOW, Offer Letter, or Service Contract)."
         }
 
     total_possible_penalty = 0

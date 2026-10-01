@@ -187,6 +187,16 @@ function handleFileSelected(event) {
 }
 
 function handleFile(file) {
+  const allowed = [".pdf", ".docx", ".txt"];
+  const fileNameLower = file.name.toLowerCase();
+  const isValid = allowed.some(ext => fileNameLower.endsWith(ext));
+  
+  if (!isValid) {
+    showToast("⚠️ Wrong file format! Please upload a PDF, DOCX, or TXT contract file.");
+    alert("Invalid file format. Only PDF, DOCX, or TXT contract files are supported.");
+    return;
+  }
+
   selectedFile = file;
   const statusDiv = document.getElementById("fileUploadStatus");
   statusDiv.classList.remove("hidden");
@@ -194,7 +204,7 @@ function handleFile(file) {
   currentContractTitle = file.name;
 
   // If text file, read locally to display
-  if (file.name.endsWith(".txt")) {
+  if (fileNameLower.endsWith(".txt")) {
     const reader = new FileReader();
     reader.onload = (e) => {
       currentContractText = e.target.result;
@@ -328,7 +338,8 @@ async function performAnalysis() {
 
   } catch (error) {
     console.error("Analysis Error:", error);
-    alert(`Analysis notice: ${error.message}`);
+    showToast(`⚠️ ${error.message}`);
+    alert(`Document Error: ${error.message}`);
   } finally {
     loadingIndicator.classList.add("hidden");
     analyzeBtn.disabled = false;
@@ -703,7 +714,13 @@ function scrollToTop() {
 
 // Toast notification helper
 function showToast(message) {
-  const toast = document.getElementById("toastNotification");
+  let toast = document.getElementById("toastNotification");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "toastNotification";
+    toast.className = "toast hidden";
+    document.body.appendChild(toast);
+  }
   toast.textContent = message;
   toast.classList.remove("hidden");
   setTimeout(() => {
