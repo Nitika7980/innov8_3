@@ -22,7 +22,7 @@ import zipfile
 import logging
 from collections import defaultdict
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any, List
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -40,8 +40,9 @@ security_logger = logging.getLogger("lexshield.security")
 current_dir = Path(__file__).resolve().parent
 sys.path.insert(0, str(current_dir))
 
-from analyzer import analyze_contract_text, calculate_late_fee
+from analyzer import analyze_contract_text, analyze_contract_with_gemini, calculate_late_fee
 from sample_contracts import SAMPLE_CONTRACTS
+from db import get_db_status, record_contract_scan, fetch_user_scans
 
 app = FastAPI(
     title="Freelancer Legal Contract Analyzer & Risky Clause Scorer",
@@ -59,7 +60,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in ALLOWED_ORIGINS if origin.strip()],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-API-Key"],
 )
 
@@ -229,8 +230,15 @@ async def health_check():
         "service": "Freelancer Legal Contract Analyzer",
         "ocr_parser_ready": True,
         "security_hardened": True,
-        "owasp_top10_compliant": True
+        "owasp_top10_compliant": True,
+        "database": get_db_status()
     }
+
+
+@app.get("/api/db/status")
+async def database_status():
+    """Returns real-time Supabase connection and integration status."""
+    return get_db_status()
 
 
 @app.get("/api/samples")
@@ -260,11 +268,37 @@ async def get_sample_content(sample_id: str):
 
 @app.post("/api/analyze")
 async def analyze_text(request_data: AnalyzeRequest, req: Request):
-    """Analyzes raw contract text and returns safety score, predatory clauses, and solutions."""
+    """Analyzes raw contract text using Google GenAI (gemini-2.5-flash) and returns safety score, predatory clauses, and solutions."""
     verify_access_control(req)
-    analysis = analyze_contract_text(request_data.text)
+    analysis = analyze_contract_with_gemini(request_data.text)
     if "error" in analysis:
         raise HTTPException(status_code=400, detail=analysis["error"])
+
+    # Track scan telemetry for admin dashboard
+    from admin import record_scan_metrics
+    record_scan_metrics(
+        score=analysis.get("score", 0),
+        grade=analysis.get("grade_badge", ""),
+        detected_risks=analysis.get("detected_risks", [])
+    )
+
+    # Persist contract scan into Supabase
+    try:
+        import uuid
+        record_contract_scan({
+            "id": f"scan_{int(time.time())}_{uuid.uuid4().hex[:6]}",
+            "user_id": None,
+            "doc_title": request_data.title or "Contract Analysis",
+            "contract_text": request_data.text[:1000],
+            "safety_score": int(analysis.get("score", 0)),
+            "risk_grade": str(analysis.get("grade_badge", "")),
+            "risks_count": len(analysis.get("detected_risks", [])),
+            "analysis_data": analysis,
+            "created_at": time.time()
+        })
+    except Exception:
+        pass
+
     return {
         "title": request_data.title,
         "length_characters": len(request_data.text),
@@ -307,6 +341,32 @@ async def upload_contract(req: Request, file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="The uploaded document contains little to no readable text.")
         
     analysis = analyze_contract_text(extracted_text)
+
+    # Track scan telemetry for admin dashboard
+    from admin import record_scan_metrics
+    record_scan_metrics(
+        score=analysis.get("score", 0),
+        grade=analysis.get("grade_badge", ""),
+        detected_risks=analysis.get("detected_risks", [])
+    )
+
+    # Persist contract scan into Supabase
+    try:
+        import uuid
+        record_contract_scan({
+            "id": f"scan_{int(time.time())}_{uuid.uuid4().hex[:6]}",
+            "user_id": None,
+            "doc_title": file.filename or "Uploaded Document",
+            "contract_text": extracted_text[:1000],
+            "safety_score": int(analysis.get("score", 0)),
+            "risk_grade": str(analysis.get("grade_badge", "")),
+            "risks_count": len(analysis.get("detected_risks", [])),
+            "analysis_data": analysis,
+            "created_at": time.time()
+        })
+    except Exception:
+        pass
+
     return {
         "filename": file.filename,
         "extracted_text": extracted_text,
@@ -601,6 +661,312 @@ async def generate_redline_report(request_data: AnalyzeRequest, req: Request):
 </html>
 """
     return HTMLResponse(content=report_html)
+
+
+# ================================================
+# ADMIN API ENDPOINTS
+# ================================================
+from admin import (
+    authenticate_admin, verify_admin_token, record_audit_event,
+    get_dashboard_metrics, get_audit_logs, clear_audit_logs,
+    get_all_rules, toggle_rule, add_rule, delete_rule, test_rule_patterns,
+    get_policy_settings, update_policy_settings,
+    get_all_presets, save_preset, delete_preset
+)
+
+
+class AdminLoginRequest(BaseModel):
+    username: str = Field(..., max_length=50)
+    password: str = Field(..., max_length=100)
+
+
+class RuleToggleRequest(BaseModel):
+    enabled: bool
+
+
+def require_admin(request: Request):
+    """Validates admin bearer token from Authorization header."""
+    token = request.headers.get("Authorization", "")
+    if not verify_admin_token(token):
+        raise HTTPException(status_code=401, detail="Invalid or expired admin session.")
+
+
+@app.post("/api/admin/login")
+async def admin_login(login_data: AdminLoginRequest, request: Request):
+    """Admin login with brute-force rate limiting."""
+    client_ip = request.client.host if request.client else "unknown"
+    result = authenticate_admin(login_data.username, login_data.password, client_ip)
+    if not result.get("success"):
+        status_code = result.get("status_code", 401)
+        raise HTTPException(status_code=status_code, detail=result.get("error", "Authentication failed."))
+    return result
+
+
+@app.get("/api/admin/dashboard")
+async def admin_dashboard(request: Request):
+    """Returns telemetry metrics for the admin dashboard."""
+    require_admin(request)
+    return get_dashboard_metrics()
+
+
+@app.get("/api/admin/rules")
+async def admin_get_rules(request: Request):
+    """Returns all detection rules with their full details."""
+    require_admin(request)
+    return get_all_rules()
+
+
+@app.post("/api/admin/rules")
+async def admin_add_rule(rule_data: dict, request: Request):
+    """Adds a new custom detection rule."""
+    require_admin(request)
+    try:
+        new_rule = add_rule(rule_data)
+        record_audit_event(
+            client_ip=request.client.host if request.client else "unknown",
+            method="POST", endpoint="/api/admin/rules",
+            status_code=201, duration_sec=0.01,
+            event_type="rule_added",
+            details=f"Rule '{new_rule['id']}' added"
+        )
+        return new_rule
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/admin/rules/{rule_id}/toggle")
+async def admin_toggle_rule(rule_id: str, toggle_data: RuleToggleRequest, request: Request):
+    """Enables or disables a detection rule."""
+    require_admin(request)
+    success = toggle_rule(rule_id, toggle_data.enabled)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Rule '{rule_id}' not found.")
+    record_audit_event(
+        client_ip=request.client.host if request.client else "unknown",
+        method="POST", endpoint=f"/api/admin/rules/{rule_id}/toggle",
+        status_code=200, duration_sec=0.01,
+        event_type="rule_toggled",
+        details=f"Rule '{rule_id}' {'enabled' if toggle_data.enabled else 'disabled'}"
+    )
+    return {"rule_id": rule_id, "enabled": toggle_data.enabled}
+
+
+@app.delete("/api/admin/rules/{rule_id}")
+async def admin_delete_rule(rule_id: str, request: Request):
+    """Deletes a detection rule."""
+    require_admin(request)
+    success = delete_rule(rule_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Rule '{rule_id}' not found.")
+    record_audit_event(
+        client_ip=request.client.host if request.client else "unknown",
+        method="DELETE", endpoint=f"/api/admin/rules/{rule_id}",
+        status_code=200, duration_sec=0.01,
+        event_type="rule_deleted",
+        details=f"Rule '{rule_id}' deleted"
+    )
+    return {"deleted": True, "rule_id": rule_id}
+
+
+@app.get("/api/admin/audit-logs")
+async def admin_get_audit_logs(
+    request: Request,
+    limit: int = 200,
+    status_filter: Optional[str] = None,
+    event_filter: Optional[str] = None,
+    search: Optional[str] = None
+):
+    """Returns filtered audit logs."""
+    require_admin(request)
+    return get_audit_logs(limit=limit, status_filter=status_filter, event_filter=event_filter, search=search)
+
+
+@app.delete("/api/admin/audit-logs")
+async def admin_clear_audit_logs(request: Request):
+    """Clears all audit logs."""
+    require_admin(request)
+    clear_audit_logs()
+    return {"cleared": True}
+
+
+@app.get("/api/admin/policy")
+async def admin_get_policy(request: Request):
+    """Returns current payment & reminder policy settings."""
+    require_admin(request)
+    return get_policy_settings()
+
+
+@app.put("/api/admin/policy")
+async def admin_update_policy(settings: dict, request: Request):
+    """Updates payment & reminder policy settings."""
+    require_admin(request)
+    updated = update_policy_settings(settings)
+    record_audit_event(
+        client_ip=request.client.host if request.client else "unknown",
+        method="PUT", endpoint="/api/admin/policy",
+        status_code=200, duration_sec=0.01,
+        event_type="policy_updated",
+        details="Payment policy settings updated"
+    )
+    return updated
+
+
+# ================================================
+# USER AUTHENTICATION API ENDPOINTS
+# ================================================
+from users import (
+    register_user, login_user, verify_user_token,
+    get_user_profile, logout_user, get_all_users_summary,
+    update_user_profile, change_user_password
+)
+
+
+class UserRegisterRequest(BaseModel):
+    full_name: str = Field(..., min_length=2, max_length=100)
+    email: str = Field(..., max_length=200)
+    password: str = Field(..., min_length=8, max_length=200)
+    organization: str = Field("", max_length=200)
+    role: str = Field("Freelancer", max_length=50)
+
+
+class UserLoginRequest(BaseModel):
+    email: str = Field(..., max_length=200)
+    password: str = Field(..., max_length=200)
+
+
+class ProfileUpdateRequest(BaseModel):
+    full_name: Optional[str] = None
+    organization: Optional[str] = None
+    role: Optional[str] = None
+    preferences: Optional[Dict[str, Any]] = None
+
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8)
+
+
+@app.post("/api/user/register")
+async def user_register(reg_data: UserRegisterRequest, request: Request):
+    """Registers a new user account."""
+    client_ip = request.client.host if request.client else "unknown"
+    result = register_user(
+        full_name=reg_data.full_name,
+        email=reg_data.email,
+        password=reg_data.password,
+        organization=reg_data.organization,
+        role=reg_data.role,
+        client_ip=client_ip
+    )
+    if not result.get("success"):
+        status_code = result.get("status_code", 400)
+        raise HTTPException(status_code=status_code, detail=result.get("error", "Registration failed."))
+    # Log the event
+    record_audit_event(
+        client_ip=client_ip,
+        method="POST", endpoint="/api/user/register",
+        status_code=201, duration_sec=0.01,
+        event_type="user_registered",
+        details=f"New user registered: {reg_data.email}"
+    )
+    return result
+
+
+@app.post("/api/user/login")
+async def user_login(login_data: UserLoginRequest, request: Request):
+    """Authenticates a user and returns a session token."""
+    client_ip = request.client.host if request.client else "unknown"
+    result = login_user(
+        email=login_data.email,
+        password=login_data.password,
+        client_ip=client_ip
+    )
+    if not result.get("success"):
+        status_code = result.get("status_code", 401)
+        raise HTTPException(status_code=status_code, detail=result.get("error", "Login failed."))
+    record_audit_event(
+        client_ip=client_ip,
+        method="POST", endpoint="/api/user/login",
+        status_code=200, duration_sec=0.01,
+        event_type="user_login",
+        details=f"User logged in: {login_data.email}"
+    )
+    return result
+
+
+@app.get("/api/user/profile")
+async def user_profile(request: Request):
+    """Returns current user's profile data."""
+    token = request.headers.get("Authorization", "")
+    session = verify_user_token(token)
+    if not session:
+        raise HTTPException(status_code=401, detail="Invalid or expired session. Please log in again.")
+    profile = get_user_profile(session["email"])
+    if not profile:
+        raise HTTPException(status_code=404, detail="User profile not found.")
+    return profile
+
+
+@app.put("/api/user/profile")
+async def update_profile(profile_data: ProfileUpdateRequest, request: Request):
+    """Updates user profile details and settings."""
+    token = request.headers.get("Authorization", "")
+    session = verify_user_token(token)
+    if not session:
+        raise HTTPException(status_code=401, detail="Invalid or expired session. Please log in again.")
+    res = update_user_profile(
+        email=session["email"],
+        full_name=profile_data.full_name,
+        organization=profile_data.organization,
+        role=profile_data.role,
+        preferences=profile_data.preferences
+    )
+    if not res.get("success"):
+        raise HTTPException(status_code=res.get("status_code", 400), detail=res.get("error", "Update failed."))
+    return res
+
+
+@app.post("/api/user/change-password")
+async def change_password(pw_data: ChangePasswordRequest, request: Request):
+    """Changes current user password."""
+    token = request.headers.get("Authorization", "")
+    session = verify_user_token(token)
+    if not session:
+        raise HTTPException(status_code=401, detail="Invalid or expired session. Please log in again.")
+    res = change_user_password(
+        email=session["email"],
+        old_password=pw_data.old_password,
+        new_password=pw_data.new_password
+    )
+    if not res.get("success"):
+        raise HTTPException(status_code=res.get("status_code", 400), detail=res.get("error", "Password change failed."))
+    return res
+
+
+@app.post("/api/user/logout")
+async def user_logout(request: Request):
+    """Invalidates the user's session token."""
+    token = request.headers.get("Authorization", "")
+    logout_user(token)
+    return {"success": True, "message": "Logged out successfully."}
+
+
+@app.get("/api/admin/users")
+async def admin_get_users(request: Request):
+    """Returns a summary of all registered users (admin only)."""
+    require_admin(request)
+    return get_all_users_summary()
+
+
+@app.get("/api/user/scans")
+async def get_user_scans(request: Request):
+    """Retrieves contract scans history from Supabase for current logged-in user."""
+    token = request.headers.get("Authorization", "")
+    session = verify_user_token(token)
+    if not session:
+        raise HTTPException(status_code=401, detail="Invalid or expired session. Please log in again.")
+    scans = fetch_user_scans(session["user_id"])
+    return {"scans": scans}
 
 
 # Mount frontend static directory

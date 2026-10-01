@@ -10,6 +10,9 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- 3D WebGL Background Canvas -->
+  <canvas id="bg3dCanvas"></canvas>
+
   <!-- Navigation Header -->
   <header class="app-header">
     <div class="header-container">
@@ -21,22 +24,134 @@
         </div>
       </div>
       <div class="header-badges">
-        <!-- Language Switcher Dropdown -->
-        <div class="lang-selector-wrap">
-          <span class="lang-icon">🌐</span>
-          <select id="languageSelect" class="lang-dropdown" onchange="setLanguage(this.value)" aria-label="Select Language">
-            <option value="en">🇬🇧 English</option>
-            <option value="hi">🇮🇳 हिंदी (Hindi)</option>
-            <option value="bn">🇮🇳 বাংলা (Bengali)</option>
-            <option value="ta">🇮🇳 தமிழ் (Tamil)</option>
-            <option value="te">🇮🇳 తెలుగు (Telugu)</option>
-          </select>
+        <!-- Sign In / User Profile Option in Header -->
+        <div id="userAuthNav" class="auth-nav-wrap">
+          <a href="/login.html" id="signInNavBtn" class="btn-signin-nav">
+            <span class="auth-icon">🔑</span> <span data-i18n="btn_signin">Sign In</span>
+          </a>
+          <div id="userProfileNav" class="user-profile-nav" style="display: none; cursor: pointer;" onclick="openProfileModal('info')" title="View Profile &amp; Settings">
+            <div class="user-chip">
+              <span class="user-avatar-mini" id="userNavInitials">U</span>
+              <span class="user-nav-name" id="userNavName">User</span>
+            </div>
+            <button class="btn-logout-mini" onclick="event.stopPropagation(); logoutUserNav()" title="Sign Out">🚪</button>
+          </div>
         </div>
 
-        <span class="pill-badge pill-sandboxed"><span class="dot"></span> <span data-i18n="badge_sandboxed">Sandboxed & Zero-Storage</span></span>
-        <button class="pill-badge pill-clickable" onclick="scrollToLateTool()" title="Late Payment & Overdue Penalty Calculator">⏰ <span>Late Fee Protection</span></button>
-        <span class="pill-badge pill-speed" data-i18n="badge_speed">⚡ Analysis &lt; 2s</span>
-        <button id="toggleThemeBtn" class="btn-theme-toggle" title="Toggle Theme">🌓</button>
+        <!-- Three Dots Kebab Menu Button & Dropdown -->
+        <div class="menu-dropdown-wrap">
+          <button id="threeDotsBtn" class="btn-three-dots" onclick="toggleHeaderMenu(event)" title="All Features &amp; Options" aria-label="All features menu">
+            ⋮
+          </button>
+          
+          <div id="threeDotsMenu" class="three-dots-dropdown" style="display: none;">
+            <div class="dropdown-header">
+              ⚡ All Features &amp; Options
+            </div>
+
+            <!-- Account / Authentication -->
+            <div class="dropdown-section">
+              <div class="dropdown-section-title">Account</div>
+              <a href="/login.html" id="menuSignInBtn" class="dropdown-item dropdown-item-primary">
+                <span class="dropdown-icon">🔑</span>
+                <div class="dropdown-text">
+                  <strong>Sign In / Create Account</strong>
+                  <small>Access saved contracts &amp; profile</small>
+                </div>
+              </a>
+              <div id="menuUserProfile" style="display: none; flex-direction: column; gap: 4px;">
+                <div class="dropdown-item" style="cursor: default; background: var(--bg-card); padding: 8px;">
+                  <span class="user-avatar-mini" id="menuUserInitials">U</span>
+                  <div class="dropdown-text" style="flex: 1;">
+                    <strong id="menuUserName">User Name</strong>
+                    <small id="menuUserEmail">user@example.com</small>
+                  </div>
+                </div>
+                <button class="dropdown-item" onclick="openProfileModal('info'); toggleHeaderMenu();">
+                  <span class="dropdown-icon">👤</span>
+                  <div class="dropdown-text">
+                    <strong>My Profile &amp; Account</strong>
+                    <small>Manage personal details</small>
+                  </div>
+                </button>
+                <button class="dropdown-item" onclick="openProfileModal('prefs'); toggleHeaderMenu();">
+                  <span class="dropdown-icon">⚙️</span>
+                  <div class="dropdown-text">
+                    <strong>Settings &amp; Preferences</strong>
+                    <small>Currency &amp; late fee defaults</small>
+                  </div>
+                </button>
+                <button class="dropdown-item" onclick="logoutUserNav(); toggleHeaderMenu();" style="color: var(--danger);">
+                  <span class="dropdown-icon">🚪</span>
+                  <div class="dropdown-text">
+                    <strong style="color: var(--danger);">Sign Out</strong>
+                    <small>Log out of session</small>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Language Switcher -->
+            <div class="dropdown-section">
+              <div class="dropdown-section-title">Language / भाषा</div>
+              <div class="dropdown-item dropdown-item-lang">
+                <span class="dropdown-icon">🌐</span>
+                <select id="languageSelect" class="lang-dropdown-menu" onchange="setLanguage(this.value); toggleHeaderMenu();" aria-label="Select Language">
+                  <option value="en">🇬🇧 English</option>
+                  <option value="hi">🇮🇳 हिंदी (Hindi)</option>
+                  <option value="bn">🇮🇳 বাংলা (Bengali)</option>
+                  <option value="ta">🇮🇳 தமிழ் (Tamil)</option>
+                  <option value="te">🇮🇳 తెలుగు (Telugu)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Tools & Navigation -->
+            <div class="dropdown-section">
+              <div class="dropdown-section-title">Tools &amp; Calculators</div>
+              <button class="dropdown-item" onclick="scrollToLateTool(); toggleHeaderMenu();">
+                <span class="dropdown-icon">⏰</span>
+                <div class="dropdown-text">
+                  <strong>Late Fee Protection Calculator</strong>
+                  <small>Calculate interest &amp; generate notice email</small>
+                </div>
+              </button>
+              <a href="/admin.html" class="dropdown-item">
+                <span class="dropdown-icon">🔐</span>
+                <div class="dropdown-text">
+                  <strong>Admin Panel</strong>
+                  <small>Manage telemetry, rules &amp; stats</small>
+                </div>
+              </a>
+            </div>
+
+            <!-- Preferences & System Info -->
+            <div class="dropdown-section">
+              <div class="dropdown-section-title">Preferences &amp; Security</div>
+              <button class="dropdown-item" onclick="toggleTheme(); toggleHeaderMenu();">
+                <span class="dropdown-icon">🌓</span>
+                <div class="dropdown-text">
+                  <strong>Toggle Dark / Light Theme</strong>
+                  <small>Switch UI contrast mode</small>
+                </div>
+              </button>
+              <div class="dropdown-item dropdown-item-info">
+                <span class="dropdown-icon">🛡️</span>
+                <div class="dropdown-text">
+                  <strong>Sandboxed Privacy</strong>
+                  <small>100% Client-side zero storage</small>
+                </div>
+              </div>
+              <div class="dropdown-item dropdown-item-info">
+                <span class="dropdown-icon">⚡</span>
+                <div class="dropdown-text">
+                  <strong>Ultra-Fast Benchmark</strong>
+                  <small>&lt; 2s real-time risk scoring engine</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </header>
@@ -378,8 +493,134 @@
     </section>
   </main>
 
-  <!-- Toast Notification -->
-  <div id="toastNotification" class="toast hidden">Copied to clipboard!</div>
+  <!-- Modal for User Profile & Settings -->
+  <div id="userProfileModal" class="modal-overlay hidden" onclick="closeModalOnBackdrop(event)">
+    <div class="modal-card profile-modal-card">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="user-avatar-mini" id="profileModalInitials" style="width: 34px; height: 34px; font-size: 13px;">U</span>
+          <div>
+            <h3 style="margin: 0; font-size: 16px;">User Profile &amp; Settings</h3>
+            <small id="profileModalEmailSub" style="color: var(--text-muted); font-size: 12px;">user@example.com</small>
+          </div>
+        </div>
+        <button class="btn-close" onclick="closeProfileModal()">×</button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="profile-tabs">
+        <button class="profile-tab-btn active" id="tabProfileInfoBtn" onclick="switchProfileTab('info')">👤 Profile Details</button>
+        <button class="profile-tab-btn" id="tabProfilePrefsBtn" onclick="switchProfileTab('prefs')">⚙️ Preferences</button>
+        <button class="profile-tab-btn" id="tabProfileSecBtn" onclick="switchProfileTab('security')">🔐 Security</button>
+      </div>
+
+      <div class="modal-body profile-modal-body">
+        <!-- Status Notice -->
+        <div id="profileModalNotice" class="notice-chip hidden" style="margin-bottom: 12px;"></div>
+
+        <!-- Tab 1: Profile Info -->
+        <div id="profileTabInfo" class="profile-tab-content">
+          <form id="profileInfoForm" onsubmit="handleProfileUpdate(event)">
+            <div class="form-group">
+              <label class="form-label">Full Name</label>
+              <input type="text" id="profFullName" class="form-input" required placeholder="John Doe" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email Address (Account ID)</label>
+              <input type="email" id="profEmail" class="form-input" readonly disabled style="opacity: 0.7; cursor: not-allowed;" />
+            </div>
+            <div class="input-row-dual">
+              <div class="form-group">
+                <label class="form-label">Profession / Role</label>
+                <select id="profRole" class="form-input">
+                  <option value="Software Engineer / Developer">💻 Software Engineer / Developer</option>
+                  <option value="UI/UX &amp; Graphic Designer">🎨 UI/UX &amp; Graphic Designer</option>
+                  <option value="Content Creator &amp; Copywriter">✍️ Content Creator &amp; Copywriter</option>
+                  <option value="Digital Consultant &amp; Marketer">🚀 Digital Consultant &amp; Marketer</option>
+                  <option value="Student Freelancer">🎓 Student Freelancer</option>
+                  <option value="Other Creative Freelancer">⚖️ Other Creative Freelancer</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Organization / Studio Name</label>
+                <input type="text" id="profOrg" class="form-input" placeholder="e.g. Apex Studio / Self-employed" />
+              </div>
+            </div>
+            <div class="account-meta-box">
+              <span>Account Plan: <strong style="color: #10b981;">Student Freelancer (Free Tier)</strong></span>
+              <span id="profScansCount">Total Contract Scans: <strong>0</strong></span>
+            </div>
+            <button type="submit" id="btnSaveProfileInfo" class="btn-primary" style="width: 100%; margin-top: 14px;">💾 Save Profile Details</button>
+          </form>
+        </div>
+
+        <!-- Tab 2: Preferences & Invoicing Defaults -->
+        <div id="profileTabPrefs" class="profile-tab-content hidden">
+          <form id="profilePrefsForm" onsubmit="handlePreferencesUpdate(event)">
+            <div class="input-row-dual">
+              <div class="form-group">
+                <label class="form-label">Default Invoice Currency</label>
+                <select id="prefCurrency" class="form-input">
+                  <option value="$">$ USD (United States Dollar)</option>
+                  <option value="₹">₹ INR (Indian Rupee)</option>
+                  <option value="€">€ EUR (Euro)</option>
+                  <option value="£">£ GBP (British Pound)</option>
+                  <option value="C$">C$ CAD (Canadian Dollar)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Default Overdue Penalty Rate</label>
+                <select id="prefLateRate" class="form-input">
+                  <option value="1.5">1.5% per month (18% p.a. - Commercial Standard)</option>
+                  <option value="2.0">2.0% per month (24% p.a. - Strict)</option>
+                  <option value="1.0">1.0% per month (12% p.a. - Mild)</option>
+                </select>
+              </div>
+            </div>
+            <div class="toggle-setting-row">
+              <div>
+                <strong>Auto-Save Contract Scans</strong>
+                <div style="font-size: 11px; color: var(--text-muted);">Save scan history in session memory</div>
+              </div>
+              <input type="checkbox" id="prefAutoSave" checked />
+            </div>
+            <div class="toggle-setting-row">
+              <div>
+                <strong>Overdue Payment Courtesy Alerts</strong>
+                <div style="font-size: 11px; color: var(--text-muted);">Enable 2-day pre-due courtesy notice templates</div>
+              </div>
+              <input type="checkbox" id="prefEmailReminders" checked />
+            </div>
+            <button type="submit" id="btnSavePreferences" class="btn-primary" style="width: 100%; margin-top: 14px;">💾 Save Preferences</button>
+          </form>
+        </div>
+
+        <!-- Tab 3: Security & Password -->
+        <div id="profileTabSecurity" class="profile-tab-content hidden">
+          <form id="changePasswordForm" onsubmit="handleChangePassword(event)">
+            <div class="form-group">
+              <label class="form-label">Current Password</label>
+              <input type="password" id="passOld" class="form-input" required placeholder="••••••••" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <input type="password" id="passNew" class="form-input" required placeholder="Min 8 chars (Uppercase, lowercase, digit)" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm New Password</label>
+              <input type="password" id="passConfirm" class="form-input" required placeholder="Re-enter new password" />
+            </div>
+            <button type="submit" id="btnChangePassword" class="btn-primary" style="width: 100%; margin-top: 14px;">🔑 Change Password</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button class="btn-secondary" onclick="logoutUserNav()" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.3);">🚪 Sign Out</button>
+        <button class="btn-secondary" onclick="closeProfileModal()">Close</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal for Counter-Offer Email -->
   <div id="emailModal" class="modal-overlay hidden" onclick="closeModalOnBackdrop(event)">
@@ -414,11 +655,14 @@
         <a href="#solutionsHeaderAnchor" onclick="scrollToTop()">Back to Top</a>
         <a href="javascript:void(0)" onclick="loadSample('predatory_dev')">Sample 1 (High Risk)</a>
         <a href="javascript:void(0)" onclick="loadSample('safe_fair')">Sample 2 (Fair)</a>
+        <a href="/admin.html" style="color: var(--primary);">🔐 Admin Panel</a>
       </div>
     </div>
   </footer>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="bg3d.js"></script>
   <script src="i18n.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=2.1"></script>
 </body>
 </html>

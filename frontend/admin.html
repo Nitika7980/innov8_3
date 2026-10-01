@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LexShield AI — Admin Panel</title>
+  <meta name="description" content="Administrative dashboard for LexShield AI contract analyzer. Manage flags, rules, and send due reminder emails." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin="anonymous">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" crossorigin="anonymous">
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <!-- Login Overlay -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <div class="login-logo">
+        <span class="login-icon">⚖️</span>
+        <div>
+          <div class="login-brand">LexShield <span class="ai-tag">AI</span></div>
+          <div class="login-sub">Admin Control Panel</div>
+        </div>
+      </div>
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input type="text" id="loginUser" class="form-input" placeholder="admin" autocomplete="username" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="loginPass" class="form-input" placeholder="••••••••" autocomplete="current-password" required />
+        </div>
+        <div id="loginError" class="login-error hidden"></div>
+        <button type="submit" class="btn-login" id="loginBtn">
+          <span id="loginBtnText">Sign In</span>
+          <span id="loginSpinner" class="spinner hidden"></span>
+        </button>
+      </form>
+      <div class="login-hint">Default: admin / lexshield-admin-2026</div>
+    </div>
+  </div>
+
+  <!-- Main Admin Layout -->
+  <div id="adminApp" class="admin-app hidden">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-logo">⚖️</span>
+        <div>
+          <div class="sidebar-brand">LexShield <span class="ai-tag">AI</span></div>
+          <div class="sidebar-role">Admin Panel</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-section="dashboard" onclick="switchSection('dashboard')">
+          <span class="nav-icon">📊</span> Dashboard
+        </button>
+        <button class="nav-item" data-section="flags" onclick="switchSection('flags')">
+          <span class="nav-icon">🚩</span> All Flags
+        </button>
+        <button class="nav-item" data-section="reminders" onclick="switchSection('reminders')">
+          <span class="nav-icon">📧</span> Due Reminder Email
+        </button>
+        <button class="nav-item" data-section="rules" onclick="switchSection('rules')">
+          <span class="nav-icon">⚙️</span> Trap Rules
+        </button>
+        <button class="nav-item" data-section="audit" onclick="switchSection('audit')">
+          <span class="nav-icon">📋</span> Audit Logs
+        </button>
+        <button class="nav-item" data-section="policy" onclick="switchSection('policy')">
+          <span class="nav-icon">💰</span> Payment Policy
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="handleLogout()">🚪 Sign Out</button>
+        <a href="/" class="btn-back-link">← Back to App</a>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="admin-main">
+      <!-- Top Bar -->
+      <header class="topbar">
+        <button class="btn-hamburger" onclick="toggleSidebar()">☰</button>
+        <h1 class="topbar-title" id="topbarTitle">Dashboard</h1>
+        <div class="topbar-right">
+          <span class="topbar-user" id="topbarUser">admin</span>
+          <span class="topbar-status">● Online</span>
+        </div>
+      </header>
+
+      <!-- Section: Dashboard -->
+      <section class="content-section active" id="section-dashboard">
+        <div class="kpi-row">
+          <div class="kpi-card kpi-blue">
+            <div class="kpi-icon">📄</div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpiTotalScans">0</div>
+              <div class="kpi-label">Total Scans</div>
+            </div>
+          </div>
+          <div class="kpi-card kpi-green">
+            <div class="kpi-icon">✅</div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpiSafeCount">0</div>
+              <div class="kpi-label">Safe Contracts</div>
+            </div>
+          </div>
+          <div class="kpi-card kpi-amber">
+            <div class="kpi-icon">⚠️</div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpiCautionCount">0</div>
+              <div class="kpi-label">Caution</div>
+            </div>
+          </div>
+          <div class="kpi-card kpi-red">
+            <div class="kpi-icon">🚨</div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpiCriticalCount">0</div>
+              <div class="kpi-label">Critical Traps</div>
+            </div>
+          </div>
+          <div class="kpi-card kpi-purple">
+            <div class="kpi-icon">⚙️</div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpiActiveRules">0</div>
+              <div class="kpi-label">Active Rules</div>
+            </div>
+          </div>
+          <div class="kpi-card kpi-teal">
+            <div class="kpi-icon">⏱️</div>
+            <div class="kpi-data">
+              <div class="kpi-value" id="kpiUptime">0m</div>
+              <div class="kpi-label">Uptime</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="charts-row">
+          <div class="chart-card">
+            <h3 class="chart-title">Grade Distribution</h3>
+            <div class="donut-chart" id="gradeDonut">
+              <div class="donut-ring">
+                <svg viewBox="0 0 120 120">
+                  <circle class="donut-bg" cx="60" cy="60" r="52" />
+                  <circle class="donut-seg donut-safe" id="donutSafe" cx="60" cy="60" r="52" />
+                  <circle class="donut-seg donut-caution" id="donutCaution" cx="60" cy="60" r="52" />
+                  <circle class="donut-seg donut-critical" id="donutCritical" cx="60" cy="60" r="52" />
+                </svg>
+                <div class="donut-center" id="donutCenterText">0</div>
+              </div>
+              <div class="donut-legend">
+                <div class="legend-item"><span class="legend-dot dot-safe"></span> Safe</div>
+                <div class="legend-item"><span class="legend-dot dot-caution"></span> Caution</div>
+                <div class="legend-item"><span class="legend-dot dot-critical"></span> Critical</div>
+              </div>
+            </div>
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title">Top Detected Traps</h3>
+            <div class="bar-chart" id="topTrapsChart">
+              <div class="bar-empty">No scan data yet. Analyze contracts to see trap statistics.</div>
+            </div>
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title">Category Breakdown</h3>
+            <div class="category-list" id="categoryBreakdownList">
+              <div class="bar-empty">No category data available.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: All Flags -->
+      <section class="content-section" id="section-flags">
+        <div class="section-toolbar">
+          <div class="toolbar-left">
+            <h2 class="section-heading">🚩 All Detection Flags & Rules</h2>
+            <p class="section-desc">Complete overview of every risk flag and trap rule in the analyzer engine. Toggle rules on/off in real time.</p>
+          </div>
+          <div class="toolbar-right">
+            <input type="text" id="flagSearchInput" class="search-input" placeholder="Search flags..." oninput="filterFlags()" />
+            <select id="flagSeverityFilter" class="filter-select" onchange="filterFlags()">
+              <option value="ALL">All Severities</option>
+              <option value="CRITICAL">🚨 Critical</option>
+              <option value="HIGH">⚠️ High</option>
+              <option value="MEDIUM">ℹ️ Medium</option>
+            </select>
+            <select id="flagCategoryFilter" class="filter-select" onchange="filterFlags()">
+              <option value="ALL">All Categories</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flags-summary-bar">
+          <div class="flag-stat"><span class="flag-stat-num" id="flagTotalCount">0</span> Total Flags</div>
+          <div class="flag-stat"><span class="flag-stat-num flag-on" id="flagEnabledCount">0</span> Enabled</div>
+          <div class="flag-stat"><span class="flag-stat-num flag-off" id="flagDisabledCount">0</span> Disabled</div>
+          <div class="flag-stat"><span class="flag-stat-num flag-crit" id="flagCritCount">0</span> Critical</div>
+          <div class="flag-stat"><span class="flag-stat-num flag-high" id="flagHighCount">0</span> High</div>
+          <div class="flag-stat"><span class="flag-stat-num flag-med" id="flagMedCount">0</span> Medium</div>
+        </div>
+
+        <div class="flags-grid" id="flagsGrid">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- Section: Due Reminder Email -->
+      <section class="content-section" id="section-reminders">
+        <div class="section-toolbar">
+          <div class="toolbar-left">
+            <h2 class="section-heading">📧 Due Reminder Email Composer</h2>
+            <p class="section-desc">Generate professional pre-due courtesy reminders and overdue late fee notice emails. Customize fields, preview, and copy with one click.</p>
+          </div>
+        </div>
+
+        <div class="reminder-layout">
+          <!-- Left: Composer Form -->
+          <div class="reminder-form-card">
+            <h3 class="form-section-title">📝 Email Details</h3>
+
+            <div class="form-row-dual">
+              <div class="form-group">
+                <label class="form-label">Client Name / Company</label>
+                <input type="text" id="reminderClientName" class="form-input" placeholder="e.g. Acme Corp / John Smith" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Project Name</label>
+                <input type="text" id="reminderProjectName" class="form-input" placeholder="e.g. Website Redesign Phase 2" />
+              </div>
+            </div>
+
+            <div class="form-row-dual">
+              <div class="form-group">
+                <label class="form-label">Invoice Number</label>
+                <input type="text" id="reminderInvoiceNo" class="form-input" placeholder="e.g. INV-2026-042" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Invoice Amount</label>
+                <div class="currency-wrap">
+                  <select id="reminderCurrency" class="currency-sel">
+                    <option value="$">$ USD</option>
+                    <option value="₹">₹ INR</option>
+                    <option value="€">€ EUR</option>
+                    <option value="£">£ GBP</option>
+                  </select>
+                  <input type="number" id="reminderAmount" class="form-input" value="2500" min="0" step="any" />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row-dual">
+              <div class="form-group">
+                <label class="form-label">Payment Due Date</label>
+                <input type="date" id="reminderDueDate" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Days Overdue (0 = not yet overdue)</label>
+                <input type="number" id="reminderDaysOverdue" class="form-input" value="0" min="0" max="365" />
+              </div>
+            </div>
+
+            <div class="form-row-dual">
+              <div class="form-group">
+                <label class="form-label">Late Fee Rate (% per month)</label>
+                <input type="number" id="reminderLateRate" class="form-input" value="1.5" min="0" max="100" step="0.1" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Your Name</label>
+                <input type="text" id="reminderYourName" class="form-input" placeholder="e.g. Snehangshu Bhattacharya" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Payment Method / Link</label>
+              <input type="text" id="reminderPaymentMethod" class="form-input" placeholder="e.g. UPI: yourname@upi or PayPal link" />
+            </div>
+
+            <div class="reminder-type-selector">
+              <h3 class="form-section-title">📨 Email Type</h3>
+              <div class="type-toggle-row">
+                <button class="type-btn active" id="typeBtnReminder" onclick="setEmailType('reminder')">
+                  <span class="type-icon">⏰</span>
+                  <div>
+                    <strong>Pre-Due Courtesy Reminder</strong>
+                    <small>Send 2 days before due date</small>
+                  </div>
+                </button>
+                <button class="type-btn" id="typeBtnOverdue" onclick="setEmailType('overdue')">
+                  <span class="type-icon">🚨</span>
+                  <div>
+                    <strong>Overdue Late Fee Notice</strong>
+                    <small>Send after payment date is missed</small>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <button class="btn-generate" onclick="generateReminderEmail()">
+              ✨ Generate Email
+            </button>
+          </div>
+
+          <!-- Right: Live Preview -->
+          <div class="reminder-preview-card">
+            <div class="preview-header">
+              <h3 class="preview-title">📬 Email Preview</h3>
+              <div class="preview-actions">
+                <button class="btn-sm btn-copy" onclick="copyReminderEmail()">📋 Copy</button>
+                <button class="btn-sm btn-mailto" onclick="openReminderInMailApp()">✉️ Open in Mail</button>
+              </div>
+            </div>
+            <div class="preview-meta">
+              <div class="meta-row"><span class="meta-label">Subject:</span> <span id="previewSubject" class="meta-value">—</span></div>
+              <div class="meta-row"><span class="meta-label">To:</span> <span id="previewTo" class="meta-value">client@company.com</span></div>
+            </div>
+            <div class="preview-body">
+              <pre id="previewEmailBody" class="email-preview-text">Fill in the form and click "Generate Email" to preview your reminder here.</pre>
+            </div>
+
+            <div class="late-fee-summary" id="lateFeeBox">
+              <div class="lf-header">💰 Late Fee Calculation</div>
+              <div class="lf-row"><span>Original Invoice:</span> <strong id="lfOriginal">$0.00</strong></div>
+              <div class="lf-row lf-danger"><span>Accrued Late Fee:</span> <strong id="lfExtra">+$0.00</strong></div>
+              <div class="lf-row lf-total"><span>Total Client Owes:</span> <strong id="lfTotal">$0.00</strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Trap Rules -->
+      <section class="content-section" id="section-rules">
+        <div class="section-toolbar">
+          <div class="toolbar-left">
+            <h2 class="section-heading">⚙️ Trap Rules Engine</h2>
+            <p class="section-desc">Manage all detection rules. Enable/disable rules, view patterns, and add custom rules to the live engine.</p>
+          </div>
+          <div class="toolbar-right">
+            <button class="btn-primary btn-sm" onclick="openAddRuleModal()">+ Add Custom Rule</button>
+          </div>
+        </div>
+
+        <div class="rules-table-wrap">
+          <table class="rules-table" id="rulesTable">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Rule ID</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Severity</th>
+                <th>Weight</th>
+                <th>Patterns</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="rulesTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section: Audit Logs -->
+      <section class="content-section" id="section-audit">
+        <div class="section-toolbar">
+          <div class="toolbar-left">
+            <h2 class="section-heading">📋 Audit Log Stream</h2>
+            <p class="section-desc">Real-time security and activity audit trail. Filter by status, event type, or search keywords.</p>
+          </div>
+          <div class="toolbar-right">
+            <select id="auditStatusFilter" class="filter-select" onchange="loadAuditLogs()">
+              <option value="all">All Status</option>
+              <option value="success">✅ Success (2xx/3xx)</option>
+              <option value="error">❌ Errors (4xx/5xx)</option>
+            </select>
+            <select id="auditEventFilter" class="filter-select" onchange="loadAuditLogs()">
+              <option value="all">All Events</option>
+              <option value="http">HTTP Requests</option>
+              <option value="admin_auth">Auth Events</option>
+              <option value="admin_auth_failed">Failed Auth</option>
+            </select>
+            <button class="btn-danger-sm" onclick="clearAuditLogs()">🗑️ Clear Logs</button>
+            <button class="btn-secondary btn-sm" onclick="loadAuditLogs()">🔄 Refresh</button>
+          </div>
+        </div>
+
+        <div class="audit-table-wrap">
+          <table class="audit-table" id="auditTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Timestamp</th>
+                <th>IP</th>
+                <th>Method</th>
+                <th>Endpoint</th>
+                <th>Status</th>
+                <th>Duration</th>
+                <th>Type</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="auditTableBody">
+              <tr><td colspan="9" class="empty-row">No audit logs yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section: Payment Policy -->
+      <section class="content-section" id="section-policy">
+        <div class="section-toolbar">
+          <div class="toolbar-left">
+            <h2 class="section-heading">💰 Payment & Reminder Policy Settings</h2>
+            <p class="section-desc">Configure default late payment rates, reminder timing, grace periods, and surcharges for the analyzer engine.</p>
+          </div>
+        </div>
+
+        <div class="policy-form-card">
+          <div class="form-row-dual">
+            <div class="form-group">
+              <label class="form-label">Monthly Late Fee Rate (%)</label>
+              <input type="number" id="policyRate" class="form-input" value="1.5" min="0" max="100" step="0.1" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Reminder Days Before Due Date</label>
+              <input type="number" id="policyReminderDays" class="form-input" value="2" min="1" max="30" />
+            </div>
+          </div>
+          <div class="form-row-dual">
+            <div class="form-group">
+              <label class="form-label">Grace Period (days)</label>
+              <input type="number" id="policyGrace" class="form-input" value="0" min="0" max="30" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Flat Surcharge</label>
+              <input type="number" id="policyFlat" class="form-input" value="0" min="0" step="any" />
+            </div>
+          </div>
+          <div class="form-row-dual">
+            <div class="form-group">
+              <label class="form-label">Currency Symbol</label>
+              <input type="text" id="policyCurrency" class="form-input" value="$" maxlength="5" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Require Courtesy Notice</label>
+              <select id="policyCourtesy" class="form-input">
+                <option value="true">Yes — Send reminder before due date</option>
+                <option value="false">No — Skip courtesy reminder</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn-primary" onclick="savePolicySettings()">💾 Save Policy Settings</button>
+          <div id="policySaveStatus" class="save-status hidden"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Add Rule Modal -->
+  <div id="addRuleModal" class="modal-overlay hidden" onclick="closeAddRuleModalOnBackdrop(event)">
+    <div class="modal-card modal-wide">
+      <div class="modal-header">
+        <h3>➕ Add Custom Detection Rule</h3>
+        <button class="btn-close" onclick="closeAddRuleModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row-dual">
+          <div class="form-group">
+            <label class="form-label">Rule ID</label>
+            <input type="text" id="newRuleId" class="form-input" placeholder="e.g. custom_nda_trap" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Title</label>
+            <input type="text" id="newRuleTitle" class="form-input" placeholder="e.g. Overly Broad NDA" />
+          </div>
+        </div>
+        <div class="form-row-dual">
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <input type="text" id="newRuleCategory" class="form-input" placeholder="e.g. Confidentiality" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Severity</label>
+            <select id="newRuleSeverity" class="form-input">
+              <option value="CRITICAL">CRITICAL</option>
+              <option value="HIGH" selected>HIGH</option>
+              <option value="MEDIUM">MEDIUM</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Weight (penalty points, 1-50)</label>
+          <input type="number" id="newRuleWeight" class="form-input" value="15" min="1" max="50" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Regex Patterns (one per line)</label>
+          <textarea id="newRulePatterns" class="form-input form-textarea" rows="4" placeholder="e.g. perpetual\\s+nda&#10;non-disclosure\\s+without\\s+limit"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Plain Translation</label>
+          <textarea id="newRulePlain" class="form-input form-textarea" rows="2" placeholder="What this means in simple language..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Why It's Risky</label>
+          <textarea id="newRuleWhy" class="form-input form-textarea" rows="2" placeholder="Why this clause is dangerous..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Recommended Solution Clause</label>
+          <textarea id="newRuleSolution" class="form-input form-textarea" rows="3" placeholder='e.g. "Confidentiality obligations shall expire..."'></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Negotiation Tip</label>
+          <textarea id="newRuleTip" class="form-input form-textarea" rows="2" placeholder="e.g. Tell the client: 'Standard NDAs have a time limit...'"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeAddRuleModal()">Cancel</button>
+        <button class="btn-primary" onclick="submitNewRule()">➕ Add Rule</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flag Detail Modal -->
+  <div id="flagDetailModal" class="modal-overlay hidden" onclick="closeFlagDetailOnBackdrop(event)">
+    <div class="modal-card modal-wide">
+      <div class="modal-header">
+        <h3 id="flagDetailTitle">Flag Details</h3>
+        <button class="btn-close" onclick="closeFlagDetailModal()">×</button>
+      </div>
+      <div class="modal-body" id="flagDetailBody">
+        <!-- Dynamically filled -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeFlagDetailModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="adminToast" class="toast hidden">Action completed!</div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

@@ -335,72 +335,106 @@ async function performAnalysis() {
   }
 }
 
-// Render Results Dashboard
-function renderResults(analysis) {
-  const resultsSection = document.getElementById("resultsSection");
-  resultsSection.classList.remove("hidden");
-
-  // Safety Score & Progress Circle
-  const score = analysis.score;
-  const color = analysis.theme_color;
-  updateProgressCircle(score, color);
-
-  // Verdict Banner
-  document.getElementById("scoreValue").textContent = score;
-  document.getElementById("contractDocTitle").textContent = currentContractTitle;
-  
-  const badgeEl = document.getElementById("verdictBadge");
-  badgeEl.textContent = analysis.grade_badge;
-  badgeEl.style.backgroundColor = `${color}20`;
-  badgeEl.style.borderColor = color;
-  badgeEl.style.color = color;
-
-  const titleEl = document.getElementById("verdictTitle");
-  if (score >= 80) {
-    titleEl.textContent = t("preset_fair_title", "Safe & Creator-Friendly Agreement");
-    titleEl.style.color = "#10b981";
-  } else if (score >= 50) {
-    titleEl.textContent = t("preset_agency_desc", "Moderate Risk — Proposed Amendments Needed");
-    titleEl.style.color = "#f59e0b";
-  } else {
-    titleEl.textContent = t("preset_dev_title", "High Risk Trap — Do NOT Sign As-Is!");
-    titleEl.style.color = "#ef4444";
-  }
-
-  document.getElementById("verdictSummary").textContent = analysis.summary;
-
-  // Stat Counters
-  document.getElementById("statCriticalCount").textContent = analysis.critical_count || 0;
-  document.getElementById("statHighCount").textContent = analysis.high_count || 0;
-  document.getElementById("statMediumCount").textContent = analysis.medium_count || 0;
-  document.getElementById("statSolutionCount").textContent = analysis.total_risks_found || 0;
-
-  // Filter count chips
-  document.getElementById("countFilterAll").textContent = analysis.total_risks_found || 0;
-  document.getElementById("countFilterCrit").textContent = analysis.critical_count || 0;
-  document.getElementById("countFilterHigh").textContent = analysis.high_count || 0;
-  document.getElementById("countFilterMed").textContent = analysis.medium_count || 0;
-
-  // Category Health Bars
-  renderCategoryBars(analysis.category_breakdown || []);
-
-  // Risky Causes & Counter-Offer Solutions (Localized!)
-  renderClauseCards(analysis.detected_risks || []);
-
-  // Counter-Offer Email (Localized!)
-  renderCounterOfferEmail(analysis.counter_offer_email);
-}
-
 // Render Circular Animated Gauge
 function updateProgressCircle(score, color) {
   const circle = document.getElementById("scoreProgressCircle");
   if (!circle) return;
 
-  const isDark = document.documentElement.getAttribute("data-theme") !== "light";
+  const isDark = document.documentElement && document.documentElement.getAttribute("data-theme") !== "light";
   const emptyTrack = isDark ? "#374151" : "#e2e8f0";
   
-  const angle = (score / 100) * 360;
-  circle.style.background = `conic-gradient(${color} 0deg, ${color} ${angle}deg, ${emptyTrack} ${angle}deg 360deg)`;
+  const scoreNum = Number(score) || 0;
+  const safeColor = color || "#2563eb";
+  const angle = Math.max(0, Math.min(360, (scoreNum / 100) * 360));
+  circle.style.background = `conic-gradient(${safeColor} 0deg, ${safeColor} ${angle}deg, ${emptyTrack} ${angle}deg 360deg)`;
+}
+
+// Render Results Dashboard
+function renderResults(analysis) {
+  if (!analysis) return;
+  const resultsSection = document.getElementById("resultsSection");
+  if (resultsSection) resultsSection.classList.remove("hidden");
+
+  // Safety Score & Progress Circle
+  const score = analysis.score || 0;
+  const color = analysis.theme_color || "#2563eb";
+  
+  if (typeof updateProgressCircle === "function") {
+    updateProgressCircle(score, color);
+  }
+
+  // Verdict Banner
+  const scoreValEl = document.getElementById("scoreValue");
+  if (scoreValEl) scoreValEl.textContent = score;
+
+  const docTitleEl = document.getElementById("contractDocTitle");
+  if (docTitleEl) docTitleEl.textContent = currentContractTitle || "Document Analysis";
+  
+  const badgeEl = document.getElementById("verdictBadge");
+  if (badgeEl) {
+    badgeEl.textContent = analysis.grade_badge || "ANALYZED";
+    badgeEl.style.backgroundColor = `${color}20`;
+    badgeEl.style.borderColor = color;
+    badgeEl.style.color = color;
+  }
+
+  const titleEl = document.getElementById("verdictTitle");
+  if (titleEl) {
+    if (score >= 80) {
+      titleEl.textContent = typeof t === "function" ? t("preset_fair_title", "Safe & Creator-Friendly Agreement") : "Safe & Creator-Friendly Agreement";
+      titleEl.style.color = "#10b981";
+    } else if (score >= 50) {
+      titleEl.textContent = typeof t === "function" ? t("preset_agency_desc", "Moderate Risk — Proposed Amendments Needed") : "Moderate Risk — Proposed Amendments Needed";
+      titleEl.style.color = "#f59e0b";
+    } else {
+      titleEl.textContent = typeof t === "function" ? t("preset_dev_title", "High Risk Trap — Do NOT Sign As-Is!") : "High Risk Trap — Do NOT Sign As-Is!";
+      titleEl.style.color = "#ef4444";
+    }
+  }
+
+  const summaryEl = document.getElementById("verdictSummary");
+  if (summaryEl) summaryEl.textContent = analysis.summary || "";
+
+  // Stat Counters
+  const critEl = document.getElementById("statCriticalCount");
+  if (critEl) critEl.textContent = analysis.critical_count || 0;
+  
+  const highEl = document.getElementById("statHighCount");
+  if (highEl) highEl.textContent = analysis.high_count || 0;
+  
+  const medEl = document.getElementById("statMediumCount");
+  if (medEl) medEl.textContent = analysis.medium_count || 0;
+  
+  const solEl = document.getElementById("statSolutionCount");
+  if (solEl) solEl.textContent = analysis.total_risks_found || 0;
+
+  // Filter count chips
+  const fAll = document.getElementById("countFilterAll");
+  if (fAll) fAll.textContent = analysis.total_risks_found || 0;
+  
+  const fCrit = document.getElementById("countFilterCrit");
+  if (fCrit) fCrit.textContent = analysis.critical_count || 0;
+  
+  const fHigh = document.getElementById("countFilterHigh");
+  if (fHigh) fHigh.textContent = analysis.high_count || 0;
+  
+  const fMed = document.getElementById("countFilterMed");
+  if (fMed) fMed.textContent = analysis.medium_count || 0;
+
+  // Category Health Bars
+  if (typeof renderCategoryBars === "function") {
+    renderCategoryBars(analysis.category_breakdown || []);
+  }
+
+  // Risky Causes & Counter-Offer Solutions
+  if (typeof renderClauseCards === "function") {
+    renderClauseCards(analysis.detected_risks || []);
+  }
+
+  // Counter-Offer Email
+  if (typeof renderCounterOfferEmail === "function") {
+    renderCounterOfferEmail(analysis.counter_offer_email);
+  }
 }
 
 // Render Category Health Bars
@@ -933,4 +967,343 @@ function openLateFeeCalculatorFromRisk(snippet) {
     }
   }
 }
+
+// User Auth Navigation bar sync
+function initUserAuthNav() {
+  const token = sessionStorage.getItem('lexshield_user_token');
+  const userDataStr = sessionStorage.getItem('lexshield_user_data');
+  
+  // Header bar elements
+  const signInBtn = document.getElementById('signInNavBtn');
+  const userProfileNav = document.getElementById('userProfileNav');
+  const userNavName = document.getElementById('userNavName');
+  const userNavInitials = document.getElementById('userNavInitials');
+
+  // Three dots menu elements
+  const menuSignInBtn = document.getElementById('menuSignInBtn');
+  const menuUserProfile = document.getElementById('menuUserProfile');
+  const menuUserName = document.getElementById('menuUserName');
+  const menuUserEmail = document.getElementById('menuUserEmail');
+  const menuUserInitials = document.getElementById('menuUserInitials');
+
+  if (token && userDataStr) {
+    try {
+      const user = JSON.parse(userDataStr);
+      
+      // Update main nav bar
+      if (signInBtn) signInBtn.style.display = 'none';
+      if (userProfileNav) userProfileNav.style.display = 'flex';
+      if (userNavName) userNavName.textContent = user.full_name || user.email || 'User';
+      if (userNavInitials) {
+        const nameParts = (user.full_name || 'U').split(' ');
+        const initials = nameParts.length > 1 
+          ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+          : nameParts[0].substring(0, 2).toUpperCase();
+        userNavInitials.textContent = initials;
+      }
+
+      // Update 3-dots menu
+      if (menuSignInBtn) menuSignInBtn.style.display = 'none';
+      if (menuUserProfile) menuUserProfile.style.display = 'flex';
+      if (menuUserName) menuUserName.textContent = user.full_name || 'User';
+      if (menuUserEmail) menuUserEmail.textContent = user.email || '';
+      if (menuUserInitials) {
+        const nameParts = (user.full_name || 'U').split(' ');
+        const initials = nameParts.length > 1 
+          ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+          : nameParts[0].substring(0, 2).toUpperCase();
+        menuUserInitials.textContent = initials;
+      }
+    } catch (e) {
+      if (signInBtn) signInBtn.style.display = 'inline-flex';
+      if (userProfileNav) userProfileNav.style.display = 'none';
+      if (menuSignInBtn) menuSignInBtn.style.display = 'flex';
+      if (menuUserProfile) menuUserProfile.style.display = 'none';
+    }
+  } else {
+    if (signInBtn) signInBtn.style.display = 'inline-flex';
+    if (userProfileNav) userProfileNav.style.display = 'none';
+    if (menuSignInBtn) menuSignInBtn.style.display = 'flex';
+    if (menuUserProfile) menuUserProfile.style.display = 'none';
+  }
+}
+
+function logoutUserNav() {
+  sessionStorage.removeItem('lexshield_user_token');
+  sessionStorage.removeItem('lexshield_user_data');
+  initUserAuthNav();
+  const menu = document.getElementById('threeDotsMenu');
+  if (menu) menu.style.display = 'none';
+  if (typeof showToast === 'function') {
+    showToast('Signed out successfully.');
+  }
+}
+
+// Toggle Three Dots Menu
+function toggleHeaderMenu(e) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById('threeDotsMenu');
+  const btn = document.getElementById('threeDotsBtn');
+  if (!menu) return;
+
+  const isVisible = menu.style.display !== 'none';
+  if (isVisible) {
+    menu.style.display = 'none';
+    if (btn) btn.classList.remove('active');
+  } else {
+    menu.style.display = 'block';
+    if (btn) btn.classList.add('active');
+    
+    // Sync language menu dropdown with current language
+    const currentLang = localStorage.getItem('lexshield_lang') || 'en';
+    const langMenuSelect = document.getElementById('languageSelect') || document.getElementById('languageSelectMenu');
+    if (langMenuSelect) langMenuSelect.value = currentLang;
+  }
+}
+
+// Close Three Dots Menu when clicking outside
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('threeDotsMenu');
+  const btn = document.getElementById('threeDotsBtn');
+  if (menu && menu.style.display !== 'none' && !menu.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+    menu.style.display = 'none';
+    if (btn) btn.classList.remove('active');
+  }
+});
+
+// Profile Modal & Settings Handlers
+function openProfileModal(defaultTab = 'info') {
+  const modal = document.getElementById('userProfileModal');
+  if (!modal) return;
+
+  const userDataStr = sessionStorage.getItem('lexshield_user_data');
+  if (!userDataStr) {
+    window.location.href = '/login.html';
+    return;
+  }
+
+  try {
+    const user = JSON.parse(userDataStr);
+    
+    // Fill fields
+    const profFullName = document.getElementById('profFullName');
+    const profEmail = document.getElementById('profEmail');
+    const profRole = document.getElementById('profRole');
+    const profOrg = document.getElementById('profOrg');
+    const profScansCount = document.getElementById('profScansCount');
+    const modalEmailSub = document.getElementById('profileModalEmailSub');
+    const modalInitials = document.getElementById('profileModalInitials');
+
+    if (profFullName) profFullName.value = user.full_name || '';
+    if (profEmail) profEmail.value = user.email || '';
+    if (profOrg) profOrg.value = user.organization || '';
+    if (profRole && user.role) profRole.value = user.role;
+    if (profScansCount) profScansCount.innerHTML = `Total Contract Scans: <strong>${user.scans_count || 0}</strong>`;
+    if (modalEmailSub) modalEmailSub.textContent = user.email || '';
+    
+    if (modalInitials) {
+      const nameParts = (user.full_name || 'U').split(' ');
+      const initials = nameParts.length > 1 
+        ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+        : nameParts[0].substring(0, 2).toUpperCase();
+      modalInitials.textContent = initials;
+    }
+
+    // Fill preferences if present
+    const prefs = user.preferences || {};
+    const prefCurrency = document.getElementById('prefCurrency');
+    const prefLateRate = document.getElementById('prefLateRate');
+    const prefAutoSave = document.getElementById('prefAutoSave');
+    const prefEmailReminders = document.getElementById('prefEmailReminders');
+
+    if (prefCurrency && prefs.default_currency) prefCurrency.value = prefs.default_currency;
+    if (prefLateRate && prefs.default_late_rate) prefLateRate.value = String(prefs.default_late_rate);
+    if (prefAutoSave) prefAutoSave.checked = prefs.auto_save_scans !== false;
+    if (prefEmailReminders) prefEmailReminders.checked = prefs.email_reminders !== false;
+
+  } catch (e) {
+    console.error("Error opening profile:", e);
+  }
+
+  switchProfileTab(defaultTab);
+  modal.classList.remove('hidden');
+}
+
+function closeProfileModal() {
+  const modal = document.getElementById('userProfileModal');
+  if (modal) modal.classList.add('hidden');
+  const notice = document.getElementById('profileModalNotice');
+  if (notice) notice.classList.add('hidden');
+}
+
+function switchProfileTab(tab) {
+  const btnInfo = document.getElementById('tabProfileInfoBtn');
+  const btnPrefs = document.getElementById('tabProfilePrefsBtn');
+  const btnSec = document.getElementById('tabProfileSecBtn');
+
+  const contentInfo = document.getElementById('profileTabInfo');
+  const contentPrefs = document.getElementById('profileTabPrefs');
+  const contentSec = document.getElementById('profileTabSecurity');
+
+  [btnInfo, btnPrefs, btnSec].forEach(btn => btn && btn.classList.remove('active'));
+  [contentInfo, contentPrefs, contentSec].forEach(c => c && c.classList.add('hidden'));
+
+  if (tab === 'prefs') {
+    if (btnPrefs) btnPrefs.classList.add('active');
+    if (contentPrefs) contentPrefs.classList.remove('hidden');
+  } else if (tab === 'security') {
+    if (btnSec) btnSec.classList.add('active');
+    if (contentSec) contentSec.classList.remove('hidden');
+  } else {
+    if (btnInfo) btnInfo.classList.add('active');
+    if (contentInfo) contentInfo.classList.remove('hidden');
+  }
+}
+
+async function handleProfileUpdate(e) {
+  e.preventDefault();
+  const token = sessionStorage.getItem('lexshield_user_token');
+  const fullName = document.getElementById('profFullName').value.trim();
+  const role = document.getElementById('profRole').value;
+  const org = document.getElementById('profOrg').value.trim();
+  const btn = document.getElementById('btnSaveProfileInfo');
+
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/user/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        full_name: fullName,
+        role: role,
+        organization: org
+      })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      sessionStorage.setItem('lexshield_user_data', JSON.stringify(data.user));
+      initUserAuthNav();
+      showToast('Profile updated successfully!');
+      showModalNotice('Profile updated successfully!', 'success');
+    } else {
+      showModalNotice(data.detail || data.error || 'Failed to update profile.', 'error');
+    }
+  } catch (err) {
+    showModalNotice('Network error updating profile.', 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function handlePreferencesUpdate(e) {
+  e.preventDefault();
+  const token = sessionStorage.getItem('lexshield_user_token');
+  const currency = document.getElementById('prefCurrency').value;
+  const lateRate = parseFloat(document.getElementById('prefLateRate').value);
+  const autoSave = document.getElementById('prefAutoSave').checked;
+  const reminders = document.getElementById('prefEmailReminders').checked;
+  const btn = document.getElementById('btnSavePreferences');
+
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/user/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        preferences: {
+          default_currency: currency,
+          default_late_rate: lateRate,
+          auto_save_scans: autoSave,
+          email_reminders: reminders
+        }
+      })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      sessionStorage.setItem('lexshield_user_data', JSON.stringify(data.user));
+      
+      // Update late fee calculator defaults on home page
+      const lateCurrSelect = document.getElementById('lateCurrency');
+      const lateRateSelect = document.getElementById('lateRate');
+      if (lateCurrSelect) lateCurrSelect.value = currency;
+      if (lateRateSelect) lateRateSelect.value = String(lateRate);
+
+      showToast('Preferences saved!');
+      showModalNotice('Preferences saved successfully!', 'success');
+    } else {
+      showModalNotice(data.detail || data.error || 'Failed to save preferences.', 'error');
+    }
+  } catch (err) {
+    showModalNotice('Network error saving preferences.', 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function handleChangePassword(e) {
+  e.preventDefault();
+  const token = sessionStorage.getItem('lexshield_user_token');
+  const oldPass = document.getElementById('passOld').value;
+  const newPass = document.getElementById('passNew').value;
+  const confirmPass = document.getElementById('passConfirm').value;
+  const btn = document.getElementById('btnChangePassword');
+
+  if (newPass !== confirmPass) {
+    showModalNotice('New passwords do not match.', 'error');
+    return;
+  }
+
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/user/change-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        old_password: oldPass,
+        new_password: newPass
+      })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      document.getElementById('passOld').value = '';
+      document.getElementById('passNew').value = '';
+      document.getElementById('passConfirm').value = '';
+      showToast('Password changed successfully!');
+      showModalNotice('Password changed successfully!', 'success');
+    } else {
+      showModalNotice(data.detail || data.error || 'Failed to change password.', 'error');
+    }
+  } catch (err) {
+    showModalNotice('Network error changing password.', 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function showModalNotice(msg, type = 'success') {
+  const notice = document.getElementById('profileModalNotice');
+  if (!notice) return;
+  notice.textContent = msg;
+  notice.className = `notice-chip notice-${type}`;
+  notice.classList.remove('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initUserAuthNav();
+});
 

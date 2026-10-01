@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LexShield AI — Sign In or Create Account</title>
+  <meta name="description" content="Sign in or create your LexShield AI account to protect your freelance contracts from predatory clauses." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin="anonymous">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" crossorigin="anonymous">
+  <link rel="stylesheet" href="login.css" />
+</head>
+<body>
+  <!-- 3D WebGL Background Canvas -->
+  <canvas id="bg3dCanvas"></canvas>
+  <div class="auth-page">
+    <!-- Animated background particles -->
+    <div class="bg-effects">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+      <div class="grid-overlay"></div>
+    </div>
+
+    <!-- Left Side: Branding Panel -->
+    <div class="brand-panel">
+      <div class="brand-content">
+        <div class="brand-logo">
+          <span class="brand-icon">⚖️</span>
+          <div>
+            <div class="brand-name">LexShield <span class="ai-badge">AI</span></div>
+            <div class="brand-tagline">Freelancer Legal Contract Analyzer</div>
+          </div>
+        </div>
+
+        <h1 class="brand-headline">Don't Sign Away Your Rights & Code.</h1>
+        <p class="brand-description">
+          Upload contracts, detect predatory clauses instantly, and get ready-to-send counter-offer solutions to protect your work and payments.
+        </p>
+
+        <div class="feature-list">
+          <div class="feature-item">
+            <span class="feature-icon">🔍</span>
+            <div>
+              <strong>10+ Trap Detection Rules</strong>
+              <span>IP theft, non-competes, payment delays, scope traps</span>
+            </div>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">📊</span>
+            <div>
+              <strong>Safety Score (0–100)</strong>
+              <span>Instant risk grade with category breakdown</span>
+            </div>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">✉️</span>
+            <div>
+              <strong>Counter-Offer Generator</strong>
+              <span>Ready-to-send professional emails with safe clauses</span>
+            </div>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">⏰</span>
+            <div>
+              <strong>Late Fee Protection</strong>
+              <span>Penalty calculator + reminder emails for overdue invoices</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="trust-badges">
+          <span class="trust-badge">🔒 Zero Data Retention</span>
+          <span class="trust-badge">🛡️ OWASP Hardened</span>
+          <span class="trust-badge">⚡ Analysis < 2s</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Side: Auth Forms -->
+    <div class="auth-panel">
+      <div class="auth-card">
+        <!-- Tab Switcher -->
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Sign In</button>
+          <button class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">Create Account</button>
+          <div class="tab-indicator" id="tabIndicator"></div>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)">
+          <div class="form-welcome">
+            <h2>Welcome back</h2>
+            <p>Sign in to your LexShield AI account</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="loginEmail">Email Address</label>
+            <div class="input-wrap">
+              <span class="input-icon">📧</span>
+              <input type="email" id="loginEmail" class="form-input" placeholder="you@example.com" autocomplete="email" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="loginPassword">Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" autocomplete="current-password" required />
+              <button type="button" class="btn-toggle-pw" onclick="togglePassword('loginPassword', this)" title="Show password">👁️</button>
+            </div>
+          </div>
+
+          <div id="loginError" class="form-error hidden"></div>
+          <div id="loginSuccess" class="form-success hidden"></div>
+
+          <button type="submit" class="btn-submit" id="loginBtn">
+            <span id="loginBtnText">Sign In</span>
+            <span id="loginSpinner" class="spinner hidden"></span>
+          </button>
+
+          <div class="form-divider">
+            <span>New to LexShield?</span>
+          </div>
+
+          <button type="button" class="btn-outline" onclick="switchAuthTab('register')">
+            Create a Free Account →
+          </button>
+        </form>
+
+        <!-- Registration Form -->
+        <form id="registerForm" class="auth-form" onsubmit="handleRegister(event)">
+          <div class="form-welcome">
+            <h2>Create your account</h2>
+            <p>Join thousands of freelancers protecting their contracts</p>
+          </div>
+
+          <div class="form-row-dual">
+            <div class="form-group">
+              <label class="form-label" for="regName">Full Name</label>
+              <div class="input-wrap">
+                <span class="input-icon">👤</span>
+                <input type="text" id="regName" class="form-input" placeholder="John Doe" autocomplete="name" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="regRole">Your Role</label>
+              <div class="input-wrap">
+                <span class="input-icon">💼</span>
+                <select id="regRole" class="form-input form-select">
+                  <option value="Freelancer">Freelancer</option>
+                  <option value="Student">Student</option>
+                  <option value="Developer">Developer</option>
+                  <option value="Designer">Designer</option>
+                  <option value="Creator">Creator / Content</option>
+                  <option value="Consultant">Consultant</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="regEmail">Email Address</label>
+            <div class="input-wrap">
+              <span class="input-icon">📧</span>
+              <input type="email" id="regEmail" class="form-input" placeholder="you@example.com" autocomplete="email" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="regOrg">Organization / Studio <span class="opt-label">(optional)</span></label>
+            <div class="input-wrap">
+              <span class="input-icon">🏢</span>
+              <input type="text" id="regOrg" class="form-input" placeholder="e.g. Acme Designs" autocomplete="organization" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="regPassword">Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="regPassword" class="form-input" placeholder="Min 8 chars, 1 uppercase, 1 digit" autocomplete="new-password" required oninput="updatePasswordStrength(this.value)" />
+              <button type="button" class="btn-toggle-pw" onclick="togglePassword('regPassword', this)" title="Show password">👁️</button>
+            </div>
+            <div class="pw-strength-bar">
+              <div class="pw-strength-fill" id="pwStrengthFill"></div>
+            </div>
+            <div class="pw-strength-label" id="pwStrengthLabel"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="regConfirm">Confirm Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="regConfirm" class="form-input" placeholder="Re-enter your password" autocomplete="new-password" required />
+            </div>
+          </div>
+
+          <div class="form-terms">
+            <label class="checkbox-wrap">
+              <input type="checkbox" id="regTerms" required />
+              <span class="checkmark"></span>
+              <span>I agree to the <a href="javascript:void(0)">Terms of Service</a> and <a href="javascript:void(0)">Privacy Policy</a></span>
+            </label>
+          </div>
+
+          <div id="registerError" class="form-error hidden"></div>
+          <div id="registerSuccess" class="form-success hidden"></div>
+
+          <button type="submit" class="btn-submit btn-register" id="registerBtn">
+            <span id="registerBtnText">Create Account</span>
+            <span id="registerSpinner" class="spinner hidden"></span>
+          </button>
+
+          <div class="form-divider">
+            <span>Already have an account?</span>
+          </div>
+
+          <button type="button" class="btn-outline" onclick="switchAuthTab('login')">
+            ← Sign In Instead
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="bg3d.js"></script>
+  <script src="login.js"></script>
+</body>
+</html>

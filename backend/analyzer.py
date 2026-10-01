@@ -5,7 +5,18 @@ translates legalese to plain English, and provides balanced counter-offer soluti
 """
 
 import re
-from typing import List, Dict, Any
+import os
+import json
+from typing import List, Dict, Any, Optional
+
+# Try importing google.genai SDK
+try:
+    from google import genai
+    from google.genai import types
+    HAS_GOOGLE_GENAI = True
+except ImportError:
+    HAS_GOOGLE_GENAI = False
+
 
 # Predefined Trap Patterns, Explanations, and Solutions
 TRAP_RULES = [
@@ -333,6 +344,8 @@ def analyze_contract_text(contract_text: str) -> Dict[str, Any]:
 
     # Evaluate against predefined trap rules
     for rule in TRAP_RULES:
+        if not rule.get("enabled", True):
+            continue
         found_matches = []
         matched_text_snippet = ""
         
@@ -582,4 +595,114 @@ def calculate_late_fee(
         "notice_email": notice_email,
         "reminder_2day_email": reminder_2day_email
     }
+
+
+def analyze_contract_with_gemini(
+    text: str,
+    role: str = "Freelance Contractor",
+    client_name: str = "Client Corp",
+    api_key_override: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Performs contract safety analysis.
+    Uses Google GenAI (gemini-2.0-flash) if a valid API key starting with AIzaSy is present.
+    Falls back instantly to the rule-based engine if the key is invalid or offline.
+    """
+    # Step 1: Run baseline rule-based risk analysis (100% reliable, instant)
+    result = analyze_contract_text(text)
+    
+    # Obtain API key from parameter or environment variables
+    api_key = api_key_override or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    
+    # Validate API key format (Google AI Studio keys start with AIzaSy)
+    if not HAS_GOOGLE_GENAI or not api_key or not api_key.startswith("AIzaSy"):
+        result["gemini_status"] = {
+            "active": False,
+            "message": "Rule engine active. Set valid GEMINI_API_KEY starting with AIzaSy to enable live AI scoring."
+        }
+        return result
+
+    try:
+        # Initialize Google GenAI client
+        client = genai.Client(api_key=api_key)
+
+        prompt = f"""
+You are LexShield AI, an elite legal risk auditor and contract analyzer for student freelancers and independent creators.
+Analyze the following contract text:
+
+=== CONTRACT TEXT ===
+{text[:4000]}
+=== END CONTRACT TEXT ===
+
+Current Rule-Based Safety Score: {result['score']}/100 ({result['safety_grade']})
+Risks Detected by Rules: {result['total_risks_found']} issues ({result['critical_count']} Critical, {result['high_count']} High)
+
+Analyze the contract for:
+1. Overall safety score adjustment (-15 to +10) based on context, hidden loopholes, ambiguous phrasing, or protective terms.
+2. High-impact 2-sentence executive summary tailored for a {role} dealing with {client_name}.
+3. 3 Key actionable takeaways.
+4. Any subtle hidden traps or ambiguous wording not caught by regex.
+5. Strategic advice for negotiating with {client_name}.
+
+Return your analysis strictly in JSON format with these exact keys:
+{{
+    "score_adjustment": 0,
+    "ai_executive_summary": "string",
+    "key_takeaways": ["point 1", "point 2", "point 3"],
+    "hidden_traps": ["trap 1", "trap 2"],
+    "negotiation_strategy": "string",
+    "custom_counter_advice": "string"
+}}
+"""
+
+        # Call Gemini model
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.2,
+                response_mime_type="application/json"
+            )
+        )
+
+        ai_payload = json.loads(response.text)
+
+        # Apply Gemini AI Score Adjustment safely
+        adj = int(ai_payload.get("score_adjustment", 0))
+        adj = max(-20, min(15, adj))
+        final_score = max(5, min(100, result["score"] + adj))
+        result["score"] = final_score
+
+        # Recalculate safety grade based on final AI-enhanced score
+        if final_score >= 80:
+            result["safety_grade"] = "Green (Safe & Balanced)"
+            result["grade_badge"] = "SAFE"
+            result["theme_color"] = "#10b981"
+        elif final_score >= 50:
+            result["safety_grade"] = "Amber (Moderate Risk - Proceed with Caution)"
+            result["grade_badge"] = "CAUTION"
+            result["theme_color"] = "#f59e0b"
+        else:
+            result["safety_grade"] = "High Risk Red (Dangerous / Predatory Terms Detected)"
+            result["grade_badge"] = "CRITICAL TRAP"
+            result["theme_color"] = "#ef4444"
+
+        result["gemini_status"] = {
+            "active": True,
+            "model": "gemini-2.0-flash",
+            "message": "Enhanced by Google Gemini AI"
+        }
+        result["ai_executive_summary"] = ai_payload.get("ai_executive_summary", result["summary"])
+        result["ai_key_takeaways"] = ai_payload.get("key_takeaways", [])
+        result["ai_hidden_traps"] = ai_payload.get("hidden_traps", [])
+        result["ai_negotiation_strategy"] = ai_payload.get("negotiation_strategy", "")
+
+    except Exception as err:
+        result["gemini_status"] = {
+            "active": False,
+            "error": str(err),
+            "message": "Rule engine fallback active."
+        }
+
+    return result
 

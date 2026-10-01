@@ -14,6 +14,14 @@ BASE_DIR = Path(__file__).resolve().parent
 BACKEND_DIR = BASE_DIR / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
+# Ensure UTF-8 output on Windows terminals
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 import uvicorn
 
 def main():
@@ -22,7 +30,7 @@ def main():
     url = f"http://{host}:{port}"
     
     print("=" * 70)
-    print(" ⚖️  LEXSHIELD AI — Freelancer Legal Contract Analyzer & Clause Scorer")
+    print(" LEXSHIELD AI - Freelancer Legal Contract Analyzer & Clause Scorer")
     print("=" * 70)
     print(f" Starting server at: {url}")
     print(" Features: Contract OCR, Risk Scoring, Multilingual & Counter-Offer Solutions")
