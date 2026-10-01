@@ -20,6 +20,7 @@ import sys
 import time
 import zipfile
 import logging
+import asyncio
 from collections import defaultdict
 from pathlib import Path
 from typing import Optional, Dict, Any, List
@@ -41,8 +42,10 @@ current_dir = Path(__file__).resolve().parent
 sys.path.insert(0, str(current_dir))
 
 from analyzer import analyze_contract_text, analyze_contract_with_gemini, calculate_late_fee
-from sample_contracts import SAMPLE_CONTRACTS
-from db import get_db_status, record_contract_scan, fetch_user_scans
+from db import (
+    get_db_status, record_contract_scan, fetch_user_scans,
+    record_payment_tracker, fetch_user_payments, delete_payment_tracker
+)
 
 app = FastAPI(
     title="Freelancer Legal Contract Analyzer & Risky Clause Scorer",
@@ -967,6 +970,59 @@ async def get_user_scans(request: Request):
         raise HTTPException(status_code=401, detail="Invalid or expired session. Please log in again.")
     scans = fetch_user_scans(session["user_id"])
     return {"scans": scans}
+
+
+# ── Payment Tracker & Proof Evidence Endpoints ───────────────
+
+class PaymentTrackerItem(BaseModel):
+    id: Optional[str] = None
+    client_name: str = Field(..., min_length=1, max_length=150)
+    project_title: str = Field(..., min_length=1, max_length=200)
+    invoice_number: Optional[str] = Field("", max_length=100)
+    amount: float = Field(..., ge=0.0)
+    currency: Optional[str] = Field("$", max_length=10)
+    due_date: str = Field(..., min_length=4, max_length=30)
+    status: Optional[str] = Field("pending", max_length=30)  # pending, paid, overdue, disputed
+    payment_method: Optional[str] = Field("", max_length=100)
+    evidence_type: Optional[str] = Field("", max_length=50)   # screenshot, receipt, txn_id, email, wire
+    evidence_data: Optional[str] = Field("", description="Transaction ID, reference notes, or receipt URL / base64")
+    evidence_notes: Optional[str] = Field("", max_length=1000)
+    payment_received_date: Optional[str] = Field("", max_length=30)
+    monthly_penalty_rate: Optional[float] = Field(1.5, ge=0.0)
+
+
+@app.get("/api/payments")
+async def get_payments(request: Request):
+    """Fetches list of payments and evidence records for current user (or guest session)."""
+    token = request.headers.get("Authorization", "")
+    session = verify_user_token(token)
+    user_id = session["user_id"] if session else None
+    items = await asyncio.to_thread(fetch_user_payments, user_id)
+    return {"payments": items}
+
+
+@app.post("/api/payments")
+async def save_payment(payment: PaymentTrackerItem, request: Request):
+    """Creates or updates a payment tracker entry and proof evidence."""
+    token = request.headers.get("Authorization", "")
+    session = verify_user_token(token)
+    user_id = session["user_id"] if session else "guest_user"
+
+    data = payment.dict()
+    data["user_id"] = user_id
+    saved = await asyncio.to_thread(record_payment_tracker, data)
+    return {"success": True, "payment": saved}
+
+
+@app.delete("/api/payments/{payment_id}")
+async def remove_payment(payment_id: str, request: Request):
+    """Deletes a payment record."""
+    token = request.headers.get("Authorization", "")
+    session = verify_user_token(token)
+    user_id = session["user_id"] if session else None
+    await asyncio.to_thread(delete_payment_tracker, payment_id, user_id)
+    return {"success": True, "message": "Payment record deleted."}
+
 
 
 # Mount frontend static directory (only in local dev; Vercel serves static files separately)

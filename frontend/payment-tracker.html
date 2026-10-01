@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Evidence & Deadline Tracker — LexShield AI</title>
+  <meta name="description" content="Track freelance payment deadlines, log proof of work and payment evidence, calculate late interest fees, and generate legal overdue notices." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin="anonymous">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" crossorigin="anonymous">
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="payment-tracker.css" />
+</head>
+<body>
+  <!-- 3D WebGL Background Canvas -->
+  <canvas id="bg3dCanvas"></canvas>
+
+  <!-- Navigation Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="logo-area">
+        <a href="/" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit;">
+          <div class="logo-icon">⚖️</div>
+          <div>
+            <div class="brand-title">LexShield <span class="ai-badge">AI</span></div>
+            <div class="brand-subtitle">Payment Evidence &amp; Deadline Tracker</div>
+          </div>
+        </a>
+      </div>
+
+      <div class="header-badges">
+        <a href="/" class="btn-header-link">📄 Contract Analyzer</a>
+        <a href="/admin.html" class="btn-header-link">🔐 Admin Panel</a>
+        
+        <div id="userAuthNav" class="auth-nav-wrap">
+          <a href="/login.html" id="signInNavBtn" class="btn-signin-nav">
+            <span class="auth-icon">🔑</span> <span>Sign In</span>
+          </a>
+          <div id="userProfileNav" class="user-profile-nav" style="display: none;">
+            <div class="user-chip">
+              <span class="user-avatar-mini" id="userNavInitials">U</span>
+              <span class="user-nav-name" id="userNavName">User</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-toggle-theme" onclick="toggleTheme()" title="Toggle Dark/Light Mode">🌓</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="tracker-main container">
+    <!-- Top Hero Section -->
+    <div class="tracker-hero">
+      <div class="tracker-hero-text">
+        <div class="hero-badge">💼 FINANCIAL INTEGRITY SYSTEM</div>
+        <h1 class="tracker-title">Payment Evidence &amp; Deadline Tracker</h1>
+        <p class="tracker-subtitle">
+          Log deliverable submissions, maintain irrefutable payment proofs, track impending deadlines with automatic grace-period alerts, and enforce penalty fee accrual for delayed client settlements.
+        </p>
+      </div>
+      <div class="tracker-hero-actions">
+        <button class="btn-primary" onclick="openNewPaymentModal()">
+          <span>➕ Add Payment Deadline</span>
+        </button>
+        <button class="btn-secondary" onclick="exportPaymentsCSV()">
+          <span>📥 Export Proof Ledger</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Metric Cards -->
+    <section class="tracker-stats-grid">
+      <div class="stat-card stat-total">
+        <div class="stat-icon">💰</div>
+        <div class="stat-info">
+          <div class="stat-label">Total Outstanding</div>
+          <div class="stat-val" id="kpiTotalOutstanding">$0.00</div>
+          <div class="stat-sub" id="kpiPendingCount">0 pending invoices</div>
+        </div>
+      </div>
+
+      <div class="stat-card stat-overdue">
+        <div class="stat-icon">🚨</div>
+        <div class="stat-info">
+          <div class="stat-label">Overdue &amp; Delayed</div>
+          <div class="stat-val stat-val-danger" id="kpiTotalOverdue">$0.00</div>
+          <div class="stat-sub" id="kpiOverdueCount">0 invoices delayed</div>
+        </div>
+      </div>
+
+      <div class="stat-card stat-interest">
+        <div class="stat-icon">📈</div>
+        <div class="stat-info">
+          <div class="stat-label">Accrued Late Penalties</div>
+          <div class="stat-val stat-val-warning" id="kpiLatePenalties">+$0.00</div>
+          <div class="stat-sub">Compounding daily interest</div>
+        </div>
+      </div>
+
+      <div class="stat-card stat-settled">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info">
+          <div class="stat-label">Settled &amp; Verified</div>
+          <div class="stat-val stat-val-success" id="kpiTotalSettled">$0.00</div>
+          <div class="stat-sub" id="kpiVerifiedCount">0 paid with proof</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filters & Search Toolbar -->
+    <section class="tracker-toolbar">
+      <div class="toolbar-search">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Search by client, invoice # or project..." oninput="filterPayments()" />
+      </div>
+
+      <div class="toolbar-filters">
+        <button class="filter-pill active" data-filter="all" onclick="setFilter('all', this)">All Invoices (<span id="countAll">0</span>)</button>
+        <button class="filter-pill filter-pill-urgent" data-filter="overdue" onclick="setFilter('overdue', this)">⚠️ Overdue (<span id="countOverdue">0</span>)</button>
+        <button class="filter-pill" data-filter="due-soon" onclick="setFilter('due-soon', this)">⏰ Due in 7 Days (<span id="countSoon">0</span>)</button>
+        <button class="filter-pill" data-filter="pending" onclick="setFilter('pending', this)">⏳ Pending (<span id="countPending">0</span>)</button>
+        <button class="filter-pill filter-pill-success" data-filter="paid" onclick="setFilter('paid', this)">✅ Paid &amp; Evidence (<span id="countPaid">0</span>)</button>
+      </div>
+    </section>
+
+    <!-- Payment Entries List / Table -->
+    <section class="tracker-table-section">
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="tracker-table">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Client &amp; Project</th>
+                <th>Invoice #</th>
+                <th>Amount</th>
+                <th>Payment Deadline</th>
+                <th>Days / Penalty</th>
+                <th>Evidence Proof</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="paymentsTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+
+        <div id="emptyState" class="empty-state-card hidden">
+          <div class="empty-icon">🗂️</div>
+          <h3>No payment records found</h3>
+          <p>Add your freelance project milestones and invoice deadlines to begin tracking payments, proof of submission, and late penalties.</p>
+          <button class="btn-primary btn-sm" onclick="openNewPaymentModal()" style="margin-top: 14px;">
+            ➕ Add Your First Invoice
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal: Add / Edit Payment & Evidence -->
+  <div id="paymentModal" class="tracker-modal-overlay hidden" onclick="handleModalOverlayClick(event)">
+    <div class="tracker-modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-icon">🧾</span>
+          <div>
+            <h2 id="modalHeaderTitle">Add Payment Deadline &amp; Evidence</h2>
+            <div class="modal-subtitle">Track deliverables, due dates, transaction IDs, or upload receipts</div>
+          </div>
+        </div>
+        <button class="btn-close-modal" onclick="closePaymentModal()">&times;</button>
+      </div>
+
+      <form id="paymentForm" onsubmit="handleSavePayment(event)">
+        <input type="hidden" id="formPaymentId" />
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="formClient">Client / Company Name *</label>
+            <input type="text" id="formClient" class="form-input" required placeholder="e.g. Acme Studio Inc." />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="formProject">Project / Milestone Name *</label>
+            <input type="text" id="formProject" class="form-input" required placeholder="e.g. Website Redesign Milestone 2" />
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label class="form-label" for="formInvoice">Invoice #</label>
+            <input type="text" id="formInvoice" class="form-input" placeholder="INV-2026-001" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="formAmount">Invoice Amount *</label>
+            <div class="currency-input-wrap">
+              <select id="formCurrency" class="currency-select">
+                <option value="$">$ USD</option>
+                <option value="₹">₹ INR</option>
+                <option value="€">€ EUR</option>
+                <option value="£">£ GBP</option>
+                <option value="C$">C$ CAD</option>
+              </select>
+              <input type="number" id="formAmount" class="form-input" step="any" min="0" required placeholder="2500" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="formDueDate">Payment Due Date *</label>
+            <input type="date" id="formDueDate" class="form-input" required />
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="formStatus">Payment Status</label>
+            <select id="formStatus" class="form-input" onchange="toggleEvidenceFields()">
+              <option value="pending">⏳ Pending (Awaiting Payment)</option>
+              <option value="paid">✅ Paid &amp; Settled</option>
+              <option value="disputed">⚠️ Disputed / Under Review</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="formPenaltyRate">Monthly Late Fee Interest (%)</label>
+            <input type="number" id="formPenaltyRate" class="form-input" step="0.1" min="0" max="100" value="1.5" />
+          </div>
+        </div>
+
+        <!-- Evidence & Proof Section -->
+        <div class="evidence-box">
+          <div class="evidence-box-title">
+            <span>🛡️ Proof of Work &amp; Payment Evidence</span>
+            <small style="color: var(--text-muted);">Receipts, transaction hashes, wire references, or delivery logs</small>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="formEvidenceType">Evidence Category</label>
+              <select id="formEvidenceType" class="form-input">
+                <option value="">No Evidence Attached Yet</option>
+                <option value="txn_hash">Transaction ID / Bank UTR / Stripe Ref</option>
+                <option value="receipt_file">Payment Screenshot / Receipt Slip</option>
+                <option value="email_confirmation">Client Email Written Confirmation</option>
+                <option value="work_delivery">Deliverable Acceptance / Sign-off Notice</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="formPaidDate">Date Payment Was Received (if paid)</label>
+              <input type="date" id="formPaidDate" class="form-input" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="formEvidenceData">Transaction Reference / Proof Data / Receipt URL</label>
+            <input type="text" id="formEvidenceData" class="form-input" placeholder="e.g. UTR: 92837492104 or https://storage... or Stripe ch_3Nx8..." />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Attach Receipt / Proof Screenshot (Local Upload)</label>
+            <input type="file" id="evidenceFileInput" accept="image/*,application/pdf" class="form-input-file" onchange="handleEvidenceFileUpload(event)" />
+            <div id="fileUploadPreview" class="evidence-file-preview hidden"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="formEvidenceNotes">Evidence Notes / Scope Verification</label>
+            <textarea id="formEvidenceNotes" class="form-input" rows="2" placeholder="e.g. Client confirmed milestone completion via Slack; transaction initiated via ACH wire."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" onclick="closePaymentModal()">Cancel</button>
+          <button type="submit" class="btn-primary" id="btnSavePayment">
+            <span id="saveBtnText">💾 Save Payment Tracker</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Evidence Viewer & Legal Demand Generator -->
+  <div id="evidenceViewModal" class="tracker-modal-overlay hidden" onclick="handleModalOverlayClick(event)">
+    <div class="tracker-modal-card tracker-modal-lg">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-icon">📜</span>
+          <div>
+            <h2 id="evidenceViewTitle">Payment Proof &amp; Overdue Resolution</h2>
+            <div class="modal-subtitle" id="evidenceViewSubtitle">Evidence audit trail &amp; ready-to-send payment demand email</div>
+          </div>
+        </div>
+        <button class="btn-close-modal" onclick="closeEvidenceViewModal()">&times;</button>
+      </div>
+
+      <div class="modal-body-content" id="evidenceViewBody">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="trackerToast" class="tracker-toast hidden"></div>
+
+  <script src="payment-tracker.js"></script>
+</body>
+</html>

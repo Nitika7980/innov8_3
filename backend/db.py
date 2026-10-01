@@ -66,7 +66,7 @@ def supabase_request(endpoint: str, method: str = "GET", payload: Optional[Dict[
     req = urllib.request.Request(url, data=data_bytes, headers=headers, method=method)
 
     try:
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with urllib.request.urlopen(req, timeout=2.0) as resp:
             body = resp.read().decode("utf-8")
             _SUPABASE_HEALTHY = True
             try:
@@ -151,16 +151,63 @@ def fetch_user_scans(user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
     success, data, status = supabase_request(endpoint, method="GET")
     if success and isinstance(data, list):
         return data
-    return []
+# ── Payment Tracker & Proof Evidence CRUD ──────────────────
+
+PAYMENT_TRACKER_STORE: Dict[str, Dict[str, Any]] = {}
+
+def record_payment_tracker(payment_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Saves or updates a payment tracking record in Supabase (or local cache)."""
+    item_id = payment_data.get("id") or f"pay_{secrets_token(8)}"
+    payment_data["id"] = item_id
+    if "created_at" not in payment_data:
+        payment_data["created_at"] = time.time()
+    
+    PAYMENT_TRACKER_STORE[item_id] = payment_data
+
+    # Attempt Supabase sync
+    endpoint = "payment_trackers"
+    success, data, status = supabase_request(endpoint, method="POST", payload=payment_data)
+    if not success and status in (409, 400):
+        # Update existing
+        patch_endpoint = f"payment_trackers?id=eq.{item_id}"
+        success, data, status = supabase_request(patch_endpoint, method="PATCH", payload=payment_data)
+        
+    return payment_data
 
 
-# ── Telemetry Logging ──────────────────────────────────────
+def fetch_user_payments(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Retrieves payment tracking and evidence items for a user."""
+    endpoint = f"payment_trackers?order=due_date.asc"
+    if user_id:
+        endpoint = f"payment_trackers?user_id=eq.{user_id}&order=due_date.asc"
+        
+    success, data, status = supabase_request(endpoint, method="GET")
+    if success and isinstance(data, list) and len(data) > 0:
+        for item in data:
+            if isinstance(item, dict) and "id" in item:
+                PAYMENT_TRACKER_STORE[item["id"]] = item
+        return data
+        
+    # Return local in-memory records matching user or all if guest
+    results = list(PAYMENT_TRACKER_STORE.values())
+    if user_id:
+        results = [p for p in results if p.get("user_id") == user_id or not p.get("user_id")]
+    return sorted(results, key=lambda x: str(x.get("due_date", "")))
 
-def log_telemetry_event(event_data: Dict[str, Any]) -> bool:
-    """Logs security audit/telemetry event to Supabase `telemetry_logs` table."""
-    endpoint = "telemetry_logs"
-    success, data, status = supabase_request(endpoint, method="POST", payload=event_data)
-    return success
+
+def delete_payment_tracker(payment_id: str, user_id: Optional[str] = None) -> bool:
+    """Deletes payment record."""
+    PAYMENT_TRACKER_STORE.pop(payment_id, None)
+    endpoint = f"payment_trackers?id=eq.{payment_id}"
+    if user_id:
+        endpoint += f"&user_id=eq.{user_id}"
+    success, _, _ = supabase_request(endpoint, method="DELETE")
+    return True
+
+
+def secrets_token(n: int = 8) -> str:
+    import secrets
+    return secrets.token_hex(n)
 
 
 def get_db_status() -> Dict[str, Any]:
@@ -170,3 +217,4 @@ def get_db_status() -> Dict[str, Any]:
         "connected": _SUPABASE_HEALTHY,
         "engine": "Supabase PostgREST v1 + Hybrid Cache"
     }
+

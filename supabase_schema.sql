@@ -111,3 +111,46 @@ BEGIN
     END IF;
 END $$;
 
+
+-- ====================================================================
+-- 6. Payment Trackers & Evidence Table (Proof of Work / Proof of Payment)
+-- ====================================================================
+CREATE TABLE IF NOT EXISTS public.payment_trackers (
+    id TEXT PRIMARY KEY,
+    user_id TEXT DEFAULT 'guest_user',
+    client_name TEXT NOT NULL,
+    project_title TEXT NOT NULL,
+    invoice_number TEXT DEFAULT '',
+    amount NUMERIC NOT NULL DEFAULT 0.0,
+    currency TEXT DEFAULT '$',
+    due_date TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    payment_method TEXT DEFAULT '',
+    evidence_type TEXT DEFAULT '',
+    evidence_data TEXT DEFAULT '',
+    evidence_notes TEXT DEFAULT '',
+    payment_received_date TEXT DEFAULT '',
+    monthly_penalty_rate NUMERIC DEFAULT 1.5,
+    created_at DOUBLE PRECISION DEFAULT EXTRACT(EPOCH FROM NOW())
+);
+
+CREATE INDEX IF NOT EXISTS idx_payment_trackers_user ON public.payment_trackers(user_id);
+CREATE INDEX IF NOT EXISTS idx_payment_trackers_due ON public.payment_trackers(due_date);
+
+GRANT ALL ON TABLE public.payment_trackers TO anon, authenticated, service_role;
+ALTER TABLE public.payment_trackers ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow anon access to payment_trackers" ON public.payment_trackers;
+CREATE POLICY "Allow anon access to payment_trackers" ON public.payment_trackers FOR ALL TO public USING (true) WITH CHECK (true);
+
+ALTER TABLE public.payment_trackers REPLICA IDENTITY FULL;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'payment_trackers'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.payment_trackers;
+    END IF;
+END $$;
+
+
