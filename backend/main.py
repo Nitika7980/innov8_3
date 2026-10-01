@@ -969,7 +969,10 @@ async def get_user_scans(request: Request):
     return {"scans": scans}
 
 
-# Mount frontend static directory
-frontend_dir = current_dir.parent / "frontend"
-if frontend_dir.exists():
-    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
+# Mount frontend static directory (only in local dev; Vercel serves static files separately)
+_is_vercel = os.getenv("VERCEL") or os.getenv("VERCEL_ENV")
+if not _is_vercel:
+    frontend_dir = current_dir.parent / "frontend"
+    if frontend_dir.exists():
+        app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
+
